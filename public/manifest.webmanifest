@@ -1,0 +1,11 @@
+{
+  "name": "Riftfall Duel",
+  "short_name": "Riftfall",
+  "description": "Jogo de luta online para dois jogadores.",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#070b16",
+  "theme_color": "#070b16",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

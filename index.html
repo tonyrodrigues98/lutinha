@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#070b16" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="Riftfall Duel, um jogo de luta online para dois jogadores." />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" />
+    <title>Riftfall Duel</title>
+  </head>
+  <body>
+    <main id="app">
+      <section id="lobby" class="lobby-shell">
+        <div class="lobby-atmosphere"></div>
+        <header class="brand-block">
+          <span class="eyebrow">COMBATE ONLINE 1 × 1</span>
+          <h1>RIFTFALL</h1>
+          <p>Escolha seu lado. Convide seu rival. Domine a arena.</p>
+        </header>
+
+        <form id="join-form" class="join-card">
+          <div class="field-group">
+            <label for="player-name">Seu nome</label>
+            <input id="player-name" name="playerName" maxlength="14" autocomplete="nickname" placeholder="Lutador" required />
+          </div>
+
+          <div class="field-group room-field">
+            <label for="room-code">Código da arena</label>
+            <div class="input-action">
+              <input id="room-code" name="roomCode" maxlength="6" inputmode="text" autocapitalize="characters" required />
+              <button id="new-room" class="mini-button" type="button" aria-label="Gerar novo código">NOVO</button>
+            </div>
+          </div>
+
+          <fieldset class="team-picker">
+            <legend>Escolha seu time</legend>
+            <div class="team-grid">
+              <button class="team-choice blue selected" type="button" data-team="blue" aria-pressed="true">
+                <span class="team-emblem">B</span>
+                <span><strong>AZUL</strong><small>Guardião da tormenta</small></span>
+              </button>
+              <button class="team-choice red" type="button" data-team="red" aria-pressed="false">
+                <span class="team-emblem">R</span>
+                <span><strong>VERMELHO</strong><small>Executor da fenda</small></span>
+              </button>
+            </div>
+          </fieldset>
+
+          <p id="lobby-error" class="lobby-error" role="alert"></p>
+          <button id="join-button" class="primary-button" type="submit">
+            <span>ENTRAR NA ARENA</span>
+            <span class="button-arrow">→</span>
+          </button>
+          <p class="lobby-note">A partida inicia automaticamente quando o segundo jogador entrar com o mesmo código.</p>
+        </form>
+      </section>
+
+      <section id="game-shell" class="game-shell hidden" aria-label="Arena de combate">
+        <div id="game-canvas"></div>
+
+        <div id="hud" class="hud-layer">
+          <div class="fighter-hud blue-hud">
+            <div class="fighter-meta"><span class="team-tag">AZUL</span><strong id="blue-name">AGUARDANDO</strong></div>
+            <div class="health-track"><div id="blue-health" class="health-fill"></div></div>
+            <div class="fighter-sub"><span id="blue-energy">ENERGIA 0%</span><span id="blue-wins" class="round-pips"></span></div>
+          </div>
+
+          <div class="round-hud">
+            <small id="round-label">RODADA 1</small>
+            <strong id="round-timer">60</strong>
+          </div>
+
+          <div class="fighter-hud red-hud">
+            <div class="fighter-meta"><strong id="red-name">AGUARDANDO</strong><span class="team-tag">VERMELHO</span></div>
+            <div class="health-track"><div id="red-health" class="health-fill"></div></div>
+            <div class="fighter-sub"><span id="red-wins" class="round-pips"></span><span id="red-energy">ENERGIA 0%</span></div>
+          </div>
+
+          <div id="match-banner" class="match-banner">
+            <span id="banner-kicker">ARENA</span>
+            <strong id="banner-title">AGUARDANDO RIVAL</strong>
+            <button id="share-match" class="share-button" type="button">COPIAR CONVITE</button>
+          </div>
+
+          <button id="fullscreen-button" class="utility-button" type="button" aria-label="Tela cheia">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /></svg>
+          </button>
+          <button id="leave-button" class="utility-button leave-button" type="button" aria-label="Sair da partida">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h9" /></svg>
+          </button>
+        </div>
+
+        <div id="touch-controls" class="touch-controls">
+          <div class="move-cluster">
+            <button class="control-button move-button" data-action="left" aria-label="Mover para esquerda">
+              <svg viewBox="0 0 48 48"><path d="M30 10 16 24l14 14" /></svg>
+            </button>
+            <button class="control-button move-button" data-action="right" aria-label="Mover para direita">
+              <svg viewBox="0 0 48 48"><path d="m18 10 14 14-14 14" /></svg>
+            </button>
+          </div>
+          <div class="action-cluster">
+            <button class="control-button guard-button" data-action="block" aria-label="Defender"><span>DEF</span></button>
+            <button class="control-button jump-button" data-action="jump" aria-label="Pular">
+              <svg viewBox="0 0 48 48"><path d="m12 30 12-12 12 12M24 18v20" /></svg>
+            </button>
+            <button class="control-button attack-button" data-action="attack" aria-label="Atacar"><span>ATK</span></button>
+            <button id="special-button" class="control-button special-button" data-action="special" aria-label="Golpe especial"><span>RIFT</span><i></i></button>
+          </div>
+        </div>
+
+        <div id="rotate-device" class="rotate-device">
+          <div class="phone-glyph"></div>
+          <strong>GIRE O CELULAR</strong>
+          <span>A arena foi feita para jogar na horizontal.</span>
+        </div>
+        <div id="connection-state" class="connection-state">RECONECTANDO...</div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

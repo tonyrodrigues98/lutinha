@@ -1,0 +1,6 @@
+node_modules
+dist
+.git
+*.log
+riftfall-duel.zip
+generated_images
