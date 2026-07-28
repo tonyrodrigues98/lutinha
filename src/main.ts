@@ -4,7 +4,6 @@ import '@fontsource/poppins/600.css';
 import '@fontsource/poppins/700.css';
 import '@fontsource/poppins/800.css';
 import Phaser from 'phaser';
-import './style.css';
 import { FightScene } from './game/FightScene';
 import { NetworkClient } from './game/network';
 import type { HitEvent, MatchSnapshot, PlayerInput, PlayerSnapshot, Team } from './game/types';
@@ -15,6 +14,28 @@ let game: Phaser.Game | undefined;
 let latestSnapshot: MatchSnapshot | undefined;
 let inputSequence = 0;
 let lastAudioHit = 0;
+
+// Safari on iPhone may still zoom despite the viewport directive.
+// Block pinch, double-tap and browser gesture events throughout the game.
+const preventBrowserZoom = (): void => {
+  const cancel = (event: Event) => event.preventDefault();
+  document.addEventListener('gesturestart', cancel, { passive: false });
+  document.addEventListener('gesturechange', cancel, { passive: false });
+  document.addEventListener('gestureend', cancel, { passive: false });
+  document.addEventListener('dblclick', cancel, { passive: false });
+  document.addEventListener('touchmove', (event) => {
+    if (event.touches.length > 1) event.preventDefault();
+  }, { passive: false });
+
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (event) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 350) event.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+};
+
+preventBrowserZoom();
 
 const input: PlayerInput = {
   left: false,
