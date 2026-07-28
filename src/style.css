@@ -23,14 +23,30 @@ body,
   overflow: hidden;
   overscroll-behavior: none;
   background: var(--ink);
+  touch-action: pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 button,
-input { font: inherit; }
+input {
+  font: inherit;
+  font-size: 16px;
+  touch-action: manipulation;
+}
 
 button {
   color: inherit;
   -webkit-tap-highlight-color: transparent;
+}
+
+.game-shell,
+#game-canvas,
+#game-canvas canvas,
+.hud-layer,
+.touch-controls,
+.control-button {
+  touch-action: none;
 }
 
 .hidden { display: none !important; }
