@@ -1,5 +1,6 @@
 export type Team = 'blue' | 'red';
-export type FighterAction = 'idle' | 'run' | 'jump' | 'attack' | 'special' | 'block' | 'hurt' | 'ko';
+export type AttackKind = 'attack' | 'kick' | 'special';
+export type FighterAction = 'idle' | 'run' | 'dash' | 'jump' | AttackKind | 'block' | 'hurt' | 'ko';
 export type MatchStatus = 'waiting' | 'countdown' | 'fighting' | 'roundover' | 'matchover';
 
 export interface PlayerInput {
@@ -7,6 +8,8 @@ export interface PlayerInput {
   right: boolean;
   jump: boolean;
   attack: boolean;
+  kick: boolean;
+  dash: boolean;
   block: boolean;
   special: boolean;
   seq: number;
@@ -34,6 +37,7 @@ export interface HitEvent {
   targetId: string;
   x: number;
   y: number;
+  kind: AttackKind;
   special: boolean;
   blocked: boolean;
 }
