@@ -116,14 +116,28 @@ async function enterImmersiveMode(): Promise<void> {
 }
 
 const roomAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-function generateRoomCode(): string {
+const roomControlCharacters = /[\u0000-\u001f\u007f-\u009f]/g;
+const sanitizeRoomName = (value: string, trim = false): string => {
+  const safeValue = value.normalize('NFC').replace(roomControlCharacters, '');
+  const limitedValue = Array.from(safeValue).slice(0, 24).join('');
+  return trim ? limitedValue.trim() : limitedValue;
+};
+
+function generateRoomName(): string {
   const values = new Uint32Array(5);
   crypto.getRandomValues(values);
-  return [...values].map((value) => roomAlphabet[value % roomAlphabet.length]).join('');
+  const suffix = [...values].map((value) => roomAlphabet[value % roomAlphabet.length]).join('');
+  return `Arena ${suffix}`;
+}
+
+function roomInviteUrl(roomName: string): string {
+  const invite = new URL(location.pathname, location.origin);
+  invite.searchParams.set('room', roomName);
+  return invite.toString();
 }
 
 const queryRoom = new URLSearchParams(location.search).get('room');
-roomInput.value = (queryRoom?.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || generateRoomCode());
+roomInput.value = sanitizeRoomName(queryRoom || '', true) || generateRoomName();
 nameInput.value = localStorage.getItem('riftfall-player-name') || '';
 
 document.querySelectorAll<HTMLButtonElement>('.team-choice').forEach((button) => {
@@ -193,12 +207,12 @@ if (savedArena && ['riftfall', 'ember', 'neon', 'astral'].includes(savedArena)) 
 }
 
 $('#new-room').addEventListener('click', () => {
-  roomInput.value = generateRoomCode();
+  roomInput.value = generateRoomName();
   lobbyError.textContent = '';
 });
 
 roomInput.addEventListener('input', () => {
-  roomInput.value = roomInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  roomInput.value = sanitizeRoomName(roomInput.value);
 });
 
 joinForm.addEventListener('submit', async (event) => {
@@ -209,7 +223,8 @@ joinForm.addEventListener('submit', async (event) => {
   joinButton.querySelector('span')!.textContent = 'CONECTANDO...';
 
   const name = nameInput.value.trim();
-  const roomCode = roomInput.value.trim().toUpperCase();
+  const roomCode = sanitizeRoomName(roomInput.value, true);
+  roomInput.value = roomCode;
   const result = await network.join({
     name,
     roomCode,
@@ -226,7 +241,7 @@ joinForm.addEventListener('submit', async (event) => {
   }
 
   localStorage.setItem('riftfall-player-name', name);
-  history.replaceState(null, '', `${location.pathname}?room=${result.roomCode}`);
+  history.replaceState(null, '', roomInviteUrl(result.roomCode || roomCode));
   document.body.classList.add('game-active');
   lobby.classList.add('hidden');
   gameShell.classList.remove('hidden');
@@ -370,7 +385,7 @@ function updateHud(snapshot: MatchSnapshot): void {
 
   if (snapshot.status === 'waiting') {
     banner.classList.add('visible');
-    bannerKicker.textContent = `ARENA ${snapshot.roomCode}`;
+    bannerKicker.textContent = `SALA ${snapshot.roomCode}`;
     bannerTitle.textContent = 'AGUARDANDO RIVAL';
     shareButton.classList.remove('hidden');
   } else if (snapshot.status === 'countdown') {
@@ -397,8 +412,8 @@ function updateHud(snapshot: MatchSnapshot): void {
 
 shareButton.addEventListener('click', async () => {
   const roomCode = latestSnapshot?.roomCode || roomInput.value;
-  const invite = `${location.origin}${location.pathname}?room=${roomCode}`;
-  const shareData = { title: 'Riftfall Duel', text: `Entre na arena ${roomCode} e lute comigo.`, url: invite };
+  const invite = roomInviteUrl(roomCode);
+  const shareData = { title: 'Riftfall Duel', text: `Entre na sala “${roomCode}” e lute comigo.`, url: invite };
   const canShare = typeof navigator.share === 'function';
   try {
     if (canShare) await navigator.share(shareData);
@@ -426,7 +441,7 @@ motionButton.addEventListener('click', () => {
 
 $('#leave-button').addEventListener('click', () => {
   network.leave();
-  location.href = `${location.pathname}?room=${latestSnapshot?.roomCode || roomInput.value}`;
+  location.href = roomInviteUrl(latestSnapshot?.roomCode || roomInput.value);
 });
 
 let audioContext: AudioContext | undefined;

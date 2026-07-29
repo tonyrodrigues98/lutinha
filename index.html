@@ -29,10 +29,10 @@
           </div>
 
           <div class="field-group room-field">
-            <label for="room-code">Código da arena</label>
+            <label for="room-code">Nome da sala</label>
             <div class="input-action">
-              <input id="room-code" name="roomCode" maxlength="6" inputmode="text" autocapitalize="characters" required />
-              <button id="new-room" class="mini-button" type="button" aria-label="Gerar novo código">NOVO</button>
+              <input id="room-code" name="roomCode" maxlength="48" inputmode="text" autocapitalize="sentences" autocomplete="off" placeholder="Ex.: Arena do Tony ⚡" required />
+              <button id="new-room" class="mini-button" type="button" aria-label="Gerar novo nome de sala">NOVA</button>
             </div>
           </div>
 
@@ -107,7 +107,7 @@
             <span>ENTRAR NA ARENA</span>
             <span class="button-arrow">→</span>
           </button>
-          <p class="lobby-note">A partida inicia automaticamente quando o segundo jogador entrar com o mesmo código.</p>
+          <p class="lobby-note">A partida inicia automaticamente quando o segundo jogador entrar na mesma sala.</p>
         </form>
       </section>
 

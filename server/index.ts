@@ -152,7 +152,13 @@ const createFighter = (id: string, name: string, team: Team, skin: FighterSkin, 
   hurtUntil: 0,
 });
 
-const cleanCode = (value: unknown) => String(value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+const cleanRoomName = (value: unknown) => Array.from(
+  String(value ?? '')
+    .normalize('NFC')
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, '')
+    .trim(),
+).slice(0, 24).join('');
+const roomChannel = (roomName: string) => `riftfall:room:${roomName}`;
 const cleanName = (value: unknown) => String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 14);
 const cleanSkin = (value: unknown): FighterSkin | undefined => (
   ['astra', 'kael'] as FighterSkin[]
@@ -249,7 +255,7 @@ function makeSnapshot(room: RoomState, now: number): MatchSnapshot {
 }
 
 function emitRoom(room: RoomState, now = Date.now()): void {
-  io.to(room.code).emit('snapshot', makeSnapshot(room, now));
+  io.to(roomChannel(room.code)).emit('snapshot', makeSnapshot(room, now));
 }
 
 function startAttack(player: FighterState, kind: AttackKind, now: number): void {
@@ -474,21 +480,21 @@ function leaveCurrentRoom(socketId: string, roomCode?: string): void {
 
 io.on('connection', (socket) => {
   socket.on('joinMatch', (rawPayload: JoinPayload, acknowledge: (result: JoinResult) => void) => {
-    const roomCode = cleanCode(rawPayload?.roomCode);
+    const roomCode = cleanRoomName(rawPayload?.roomCode);
     const name = cleanName(rawPayload?.name);
     const team = rawPayload?.team;
     const skin = cleanSkin(rawPayload?.skin);
     const color = cleanColor(rawPayload?.color);
     const arena = cleanArena(rawPayload?.arena);
 
-    if (roomCode.length < 4 || !name || !skin || !color || !arena || (team !== 'blue' && team !== 'red')) {
-      acknowledge({ ok: false, message: 'Confira o nome, o código e as opções de personalização.' });
+    if (!roomCode || !name || !skin || !color || !arena || (team !== 'blue' && team !== 'red')) {
+      acknowledge({ ok: false, message: 'Confira seu nome, o nome da sala e as opções de personalização.' });
       return;
     }
 
     const previousRoom = socket.data.roomCode as string | undefined;
     if (previousRoom) {
-      socket.leave(previousRoom);
+      socket.leave(roomChannel(previousRoom));
       leaveCurrentRoom(socket.id, previousRoom);
     }
 
@@ -505,7 +511,7 @@ io.on('connection', (socket) => {
     rooms.set(roomCode, room);
     room.players.set(socket.id, createFighter(socket.id, name, team, skin, color));
     socket.data.roomCode = roomCode;
-    socket.join(roomCode);
+    socket.join(roomChannel(roomCode));
     acknowledge({ ok: true, roomCode });
 
     if (room.players.size === 2) beginCountdown(room);
@@ -531,7 +537,7 @@ io.on('connection', (socket) => {
 
   socket.on('leaveMatch', () => {
     const roomCode = socket.data.roomCode as string | undefined;
-    if (roomCode) socket.leave(roomCode);
+    if (roomCode) socket.leave(roomChannel(roomCode));
     leaveCurrentRoom(socket.id, roomCode);
     socket.data.roomCode = undefined;
   });

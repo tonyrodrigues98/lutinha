@@ -579,7 +579,16 @@ svg * {
 .match-banner.visible { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
 .match-banner.counting { min-width: 150px; border: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
 .match-banner.counting strong { font-size: clamp(72px, 15vw, 140px); text-shadow: 0 0 42px rgba(255, 255, 255, .45); }
-.match-banner span { color: #94a3b8; font-size: 9px; font-weight: 700; letter-spacing: .22em; }
+.match-banner span {
+  max-width: min(80vw, 420px);
+  overflow: hidden;
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .match-banner strong { margin-top: 4px; font-size: clamp(20px, 4vw, 38px); line-height: 1; letter-spacing: -.03em; }
 
 .combo-indicator {

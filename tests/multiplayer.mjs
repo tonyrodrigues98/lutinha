@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 
 const testPort = 3187;
 const endpoint = process.env.TEST_SERVER_URL || `http://localhost:${testPort}`;
-const roomCode = `T${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+const roomCode = `Sala ⚔ /?&=+ ç日本 ${Math.random().toString(36).slice(2, 5)}`;
 const ownedServer = process.env.TEST_SERVER_URL ? undefined : spawn(
   process.execPath,
   ['--import', 'tsx', 'server/index.ts'],
@@ -119,6 +119,7 @@ try {
   if (duplicateTeam.ok || !duplicateTeam.message.includes('já foi escolhido')) throw new Error('Reserva de time não foi respeitada');
   await join(red, { roomCode, name: 'Vermelho Teste', team: 'red', skin: 'kael', color: 'gold', arena: 'astral' });
   const fighting = await waitForState((snapshot) => snapshot.status === 'fighting', 8_000);
+  if (fighting.roomCode !== roomCode) throw new Error('Caracteres livres do nome da sala não foram preservados');
   if (fighting.arena !== 'ember') throw new Error('A arena do criador da sala não foi preservada');
   if (!fighting.players.some((player) => player.color === 'emerald')) throw new Error('A cor personalizada não foi sincronizada');
   const blueStartX = fighting.players.find((player) => player.team === 'blue').x;

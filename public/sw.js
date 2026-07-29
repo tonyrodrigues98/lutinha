@@ -1,4 +1,4 @@
-const CACHE = 'riftfall-product-v1';
+const CACHE = 'riftfall-product-v2';
 const CORE = [
   '/',
   '/manifest.webmanifest',
