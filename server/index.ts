@@ -33,10 +33,8 @@ const FIGHTER_STATS: Record<FighterSkin, {
   defense: number;
   energy: number;
 }> = {
-  vanguard: { speed: 1, jump: 1, dash: 1, damage: 1, defense: 1, energy: 1 },
-  ronin: { speed: 1.13, jump: 1.09, dash: 1.05, damage: 0.93, defense: 1.06, energy: 1.05 },
-  titan: { speed: 0.86, jump: 0.9, dash: 0.88, damage: 1.18, defense: 0.88, energy: 0.9 },
-  wraith: { speed: 1.06, jump: 1.03, dash: 1.2, damage: 0.97, defense: 1.03, energy: 1.2 },
+  astra: { speed: 1.12, jump: 1.08, dash: 1.16, damage: 0.96, defense: 1.04, energy: 1.12 },
+  kael: { speed: 0.9, jump: 0.92, dash: 0.92, damage: 1.16, defense: 0.9, energy: 0.92 },
 };
 
 interface FighterState {
@@ -154,10 +152,16 @@ const createFighter = (id: string, name: string, team: Team, skin: FighterSkin, 
   hurtUntil: 0,
 });
 
-const cleanCode = (value: unknown) => String(value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+const cleanRoomName = (value: unknown) => Array.from(
+  String(value ?? '')
+    .normalize('NFC')
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, '')
+    .trim(),
+).slice(0, 24).join('');
+const roomChannel = (roomName: string) => `riftfall:room:${roomName}`;
 const cleanName = (value: unknown) => String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 14);
 const cleanSkin = (value: unknown): FighterSkin | undefined => (
-  ['vanguard', 'ronin', 'titan', 'wraith'] as FighterSkin[]
+  ['astra', 'kael'] as FighterSkin[]
 ).find((skin) => skin === value);
 const cleanColor = (value: unknown): FighterColor | undefined => (
   ['azure', 'crimson', 'emerald', 'violet', 'gold', 'fuchsia', 'cyan', 'lime', 'orange', 'ice', 'coral', 'silver'] as FighterColor[]
@@ -220,7 +224,11 @@ function makeSnapshot(room: RoomState, now: number): MatchSnapshot {
     energy: Math.max(0, Math.min(100, Math.round(player.energy))),
     facing: player.facing,
     grounded: player.grounded,
-    action: fighterAction(player, now),
+    action: room.status === 'countdown'
+      ? 'intro'
+      : room.status === 'matchover' && room.winnerId === player.id
+        ? 'victory'
+        : fighterAction(player, now),
     wins: player.wins,
   }));
 
@@ -247,7 +255,7 @@ function makeSnapshot(room: RoomState, now: number): MatchSnapshot {
 }
 
 function emitRoom(room: RoomState, now = Date.now()): void {
-  io.to(room.code).emit('snapshot', makeSnapshot(room, now));
+  io.to(roomChannel(room.code)).emit('snapshot', makeSnapshot(room, now));
 }
 
 function startAttack(player: FighterState, kind: AttackKind, now: number): void {
@@ -472,21 +480,21 @@ function leaveCurrentRoom(socketId: string, roomCode?: string): void {
 
 io.on('connection', (socket) => {
   socket.on('joinMatch', (rawPayload: JoinPayload, acknowledge: (result: JoinResult) => void) => {
-    const roomCode = cleanCode(rawPayload?.roomCode);
+    const roomCode = cleanRoomName(rawPayload?.roomCode);
     const name = cleanName(rawPayload?.name);
     const team = rawPayload?.team;
     const skin = cleanSkin(rawPayload?.skin);
     const color = cleanColor(rawPayload?.color);
     const arena = cleanArena(rawPayload?.arena);
 
-    if (roomCode.length < 4 || !name || !skin || !color || !arena || (team !== 'blue' && team !== 'red')) {
-      acknowledge({ ok: false, message: 'Confira o nome, o código e as opções de personalização.' });
+    if (!roomCode || !name || !skin || !color || !arena || (team !== 'blue' && team !== 'red')) {
+      acknowledge({ ok: false, message: 'Confira seu nome, o nome da sala e as opções de personalização.' });
       return;
     }
 
     const previousRoom = socket.data.roomCode as string | undefined;
     if (previousRoom) {
-      socket.leave(previousRoom);
+      socket.leave(roomChannel(previousRoom));
       leaveCurrentRoom(socket.id, previousRoom);
     }
 
@@ -503,7 +511,7 @@ io.on('connection', (socket) => {
     rooms.set(roomCode, room);
     room.players.set(socket.id, createFighter(socket.id, name, team, skin, color));
     socket.data.roomCode = roomCode;
-    socket.join(roomCode);
+    socket.join(roomChannel(roomCode));
     acknowledge({ ok: true, roomCode });
 
     if (room.players.size === 2) beginCountdown(room);
@@ -529,7 +537,7 @@ io.on('connection', (socket) => {
 
   socket.on('leaveMatch', () => {
     const roomCode = socket.data.roomCode as string | undefined;
-    if (roomCode) socket.leave(roomCode);
+    if (roomCode) socket.leave(roomChannel(roomCode));
     leaveCurrentRoom(socket.id, roomCode);
     socket.data.roomCode = undefined;
   });

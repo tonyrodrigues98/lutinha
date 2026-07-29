@@ -1,461 +1,110 @@
 import Phaser from 'phaser';
-import type { FighterAction, FighterColor, FighterSkin, Team } from './types';
+import type { FighterAction, FighterColor, FighterSkin } from './types';
 
-const SIZE = { width: 180, height: 220 };
-
-export const ACTION_FRAMES: Record<FighterAction, number> = {
-  idle: 8,
-  run: 10,
-  dash: 6,
-  jump: 5,
-  attack: 8,
-  kick: 9,
-  special: 12,
-  block: 4,
-  hurt: 4,
-  ko: 8,
+export const FIGHTER_SHEETS: Record<FighterSkin, string> = {
+  astra: '/assets/characters/astra-nyx-sheet.webp',
+  kael: '/assets/characters/kael-forge-sheet.webp',
 };
+
+const FRAME_SEQUENCES: Record<FighterAction, readonly number[]> = {
+  intro: [5, 0, 1, 0],
+  idle: [0, 1, 0, 1],
+  run: [2, 3, 4, 3],
+  dash: [5, 6, 6],
+  jump: [7, 8, 8, 9],
+  attack: [10, 10, 11, 11, 14],
+  kick: [15, 15, 16, 16, 15],
+  special: [12, 12, 13, 13, 14],
+  block: [17, 17],
+  hurt: [18, 18],
+  ko: [18, 19, 19, 19],
+  victory: [14, 13, 13, 14],
+};
+
+export const ACTION_FRAMES: Record<FighterAction, number> = Object.fromEntries(
+  Object.entries(FRAME_SEQUENCES).map(([action, frames]) => [action, frames.length]),
+) as Record<FighterAction, number>;
 
 export const ACTION_SPEED: Record<FighterAction, number> = {
-  idle: 90,
-  run: 58,
-  dash: 34,
-  jump: 84,
-  attack: 44,
-  kick: 48,
-  special: 54,
-  block: 88,
-  hurt: 60,
-  ko: 78,
+  intro: 180,
+  idle: 180,
+  run: 92,
+  dash: 70,
+  jump: 115,
+  attack: 72,
+  kick: 78,
+  special: 94,
+  block: 170,
+  hurt: 105,
+  ko: 150,
+  victory: 210,
 };
 
-const COLOR_PALETTES: Record<FighterColor, {
-  core: string;
-  light: string;
-  dark: string;
-  armor: string;
-  glow: string;
-}> = {
-  azure: { core: '#38bdf8', light: '#e0f2fe', dark: '#075985', armor: '#172554', glow: 'rgba(56,189,248,.75)' },
-  crimson: { core: '#fb4f58', light: '#ffe4e6', dark: '#991b1b', armor: '#450a0a', glow: 'rgba(251,79,88,.75)' },
-  emerald: { core: '#34d399', light: '#d1fae5', dark: '#047857', armor: '#022c22', glow: 'rgba(52,211,153,.75)' },
-  violet: { core: '#8b5cf6', light: '#ede9fe', dark: '#5b21b6', armor: '#2e1065', glow: 'rgba(139,92,246,.78)' },
-  gold: { core: '#fbbf24', light: '#fef3c7', dark: '#b45309', armor: '#451a03', glow: 'rgba(251,191,36,.78)' },
-  fuchsia: { core: '#e879f9', light: '#fae8ff', dark: '#a21caf', armor: '#4a044e', glow: 'rgba(232,121,249,.78)' },
-  cyan: { core: '#22d3ee', light: '#cffafe', dark: '#0e7490', armor: '#083344', glow: 'rgba(34,211,238,.78)' },
-  lime: { core: '#a3e635', light: '#ecfccb', dark: '#4d7c0f', armor: '#1a2e05', glow: 'rgba(163,230,53,.72)' },
-  orange: { core: '#fb923c', light: '#ffedd5', dark: '#c2410c', armor: '#431407', glow: 'rgba(251,146,60,.78)' },
-  ice: { core: '#dbeafe', light: '#ffffff', dark: '#60a5fa', armor: '#172554', glow: 'rgba(219,234,254,.82)' },
-  coral: { core: '#fda4af', light: '#fff1f2', dark: '#e11d48', armor: '#4c0519', glow: 'rgba(253,164,175,.78)' },
-  silver: { core: '#cbd5e1', light: '#f8fafc', dark: '#64748b', armor: '#1e293b', glow: 'rgba(203,213,225,.72)' },
+const COLOR_VALUES: Record<FighterColor, number> = {
+  azure: 0x38bdf8,
+  crimson: 0xfb4f58,
+  emerald: 0x34d399,
+  violet: 0x8b5cf6,
+  gold: 0xfbbf24,
+  fuchsia: 0xe879f9,
+  cyan: 0x22d3ee,
+  lime: 0xa3e635,
+  orange: 0xfb923c,
+  ice: 0xdbeafe,
+  coral: 0xfda4af,
+  silver: 0xcbd5e1,
 };
 
-export function fighterTextureKey(team: Team, skin: FighterSkin, color: FighterColor, action: FighterAction, frame: number): string {
-  return `fighter-${team}-${skin}-${color}-${action}-${frame}`;
+export function fighterTextureKey(skin: FighterSkin): string {
+  return `fighter-${skin}`;
 }
 
-export function ensureFighterTextures(scene: Phaser.Scene, selectedTeam?: Team, selectedSkin?: FighterSkin, selectedColor?: FighterColor): void {
-  const targets: Array<[Team, FighterSkin, FighterColor]> = selectedTeam && selectedSkin && selectedColor
-    ? [[selectedTeam, selectedSkin, selectedColor]]
-    : [];
-  targets.forEach(([team, skin, color]) => {
-    (Object.keys(ACTION_FRAMES) as FighterAction[]).forEach((action) => {
-      for (let frame = 0; frame < ACTION_FRAMES[action]; frame += 1) {
-        const key = fighterTextureKey(team, skin, color, action, frame);
-        if (scene.textures.exists(key)) continue;
-        const texture = scene.textures.createCanvas(key, SIZE.width, SIZE.height);
-        if (!texture) continue;
-        drawFighter(texture.getContext(), team, skin, color, action, frame, ACTION_FRAMES[action]);
-        texture.refresh();
-      }
-    });
-  });
+export function fighterFrame(action: FighterAction, animationFrame: number): number {
+  const sequence = FRAME_SEQUENCES[action];
+  return sequence[animationFrame % sequence.length] ?? sequence[0];
+}
 
+export function fighterColorValue(color: FighterColor): number {
+  return COLOR_VALUES[color];
+}
+
+export function ensureEffectTextures(scene: Phaser.Scene): void {
   if (!scene.textures.exists('particle-white')) {
     const particle = scene.textures.createCanvas('particle-white', 20, 20);
     if (particle) {
       const context = particle.getContext();
       const gradient = context.createRadialGradient(10, 10, 0, 10, 10, 10);
       gradient.addColorStop(0, '#ffffff');
-      gradient.addColorStop(0.4, '#ffffff');
+      gradient.addColorStop(0.38, '#ffffff');
       gradient.addColorStop(1, 'rgba(255,255,255,0)');
       context.fillStyle = gradient;
       context.fillRect(0, 0, 20, 20);
       particle.refresh();
     }
   }
-}
 
-function limb(
-  context: CanvasRenderingContext2D,
-  points: Array<[number, number]>,
-  width: number,
-  color: string,
-  jointColor: string,
-): void {
-  context.save();
-  context.lineCap = 'round';
-  context.lineJoin = 'round';
-  context.strokeStyle = '#030712';
-  context.lineWidth = width + 8;
-  context.beginPath();
-  points.forEach(([x, y], index) => index === 0 ? context.moveTo(x, y) : context.lineTo(x, y));
-  context.stroke();
-  context.strokeStyle = color;
-  context.lineWidth = width;
-  context.stroke();
-  for (const [x, y] of points.slice(1, -1)) {
-    context.fillStyle = jointColor;
-    context.beginPath();
-    context.arc(x, y, width * 0.46, 0, Math.PI * 2);
-    context.fill();
-  }
-  context.restore();
-}
-
-function drawFighter(
-  context: CanvasRenderingContext2D,
-  team: Team,
-  skin: FighterSkin,
-  color: FighterColor,
-  action: FighterAction,
-  frame: number,
-  frameCount: number,
-): void {
-  const baseColors = COLOR_PALETTES[color];
-  const armor = {
-    vanguard: baseColors.armor,
-    ronin: '#18181b',
-    titan: '#292524',
-    wraith: '#2e1065',
-  }[skin];
-  const accent = {
-    vanguard: baseColors.light,
-    ronin: '#fbbf24',
-    titan: '#f59e0b',
-    wraith: '#c4b5fd',
-  }[skin];
-  const colors = { ...baseColors, armor };
-  const phase = (frame / frameCount) * Math.PI * 2;
-  const idle = Math.sin(phase);
-  const run = Math.sin(phase);
-  let bodyX = SIZE.width / 2;
-  let bodyY = 105 + idle * (action === 'idle' ? 3 : 0);
-  let rotation = 0;
-  let crouch = 0;
-  let fade = 1;
-
-  if (action === 'run') bodyY += Math.abs(run) * 4;
-  if (action === 'dash') { crouch = 13; bodyX += 5; rotation = 0.11; }
-  if (action === 'block') { crouch = 10; bodyX -= 3; }
-  if (action === 'hurt') { bodyX -= 7 + frame * 2; rotation = -0.08; }
-  if (action === 'ko') {
-    const progress = frame / Math.max(1, frameCount - 1);
-    rotation = -progress * 1.36;
-    bodyX -= progress * 30;
-    bodyY += progress * 60;
-    fade = 1 - progress * 0.18;
-  }
-
-  context.clearRect(0, 0, SIZE.width, SIZE.height);
-  context.save();
-  context.globalAlpha = fade;
-  context.translate(bodyX, bodyY + crouch);
-  context.rotate(rotation);
-
-  if (action === 'dash') {
-    context.save();
-    context.globalAlpha = 0.18 + frame * 0.035;
-    context.strokeStyle = accent;
-    context.shadowColor = baseColors.core;
-    context.shadowBlur = 16;
-    context.lineCap = 'round';
-    for (let trail = 0; trail < 3; trail += 1) {
-      context.lineWidth = 8 - trail * 2;
+  if (!scene.textures.exists('impact-slash')) {
+    const slash = scene.textures.createCanvas('impact-slash', 160, 72);
+    if (slash) {
+      const context = slash.getContext();
+      const gradient = context.createLinearGradient(0, 36, 160, 36);
+      gradient.addColorStop(0, 'rgba(255,255,255,0)');
+      gradient.addColorStop(0.42, 'rgba(255,255,255,.92)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+      context.strokeStyle = gradient;
+      context.lineCap = 'round';
+      context.lineWidth = 9;
       context.beginPath();
-      context.moveTo(-35 - trail * 12, -35 + trail * 30);
-      context.lineTo(-82 - frame * 3, -25 + trail * 31);
+      context.moveTo(8, 62);
+      context.quadraticCurveTo(78, 5, 152, 22);
       context.stroke();
-    }
-    context.restore();
-  }
-
-  const runSwing = action === 'run' ? run * 21 : 0;
-  const jumpTuck = action === 'jump' ? 16 : 0;
-  const attackProgress = action === 'attack' ? frame / (frameCount - 1) : 0;
-  const kickProgress = action === 'kick' ? frame / (frameCount - 1) : 0;
-  const specialProgress = action === 'special' ? frame / (frameCount - 1) : 0;
-  const guard = action === 'block';
-
-  let backHand: [number, number] = [-28 - runSwing * 0.45, 27 + Math.abs(runSwing) * 0.2];
-  let frontHand: [number, number] = [31 + runSwing * 0.45, 25 + Math.abs(runSwing) * 0.2];
-  if (guard) {
-    backHand = [-12, -31];
-    frontHand = [22, -39];
-  }
-  if (action === 'attack') {
-    const reach = Math.sin(Math.min(1, attackProgress * 1.35) * Math.PI) * 48;
-    frontHand = [32 + reach, -4 - reach * 0.18];
-  }
-  if (action === 'special') {
-    const reach = Math.sin(Math.min(1, specialProgress * 1.2) * Math.PI) * 60;
-    backHand = [8 + reach * 0.35, -38];
-    frontHand = [28 + reach, -24];
-  }
-
-  let backKnee: [number, number] = [-21 - runSwing * 0.3, 65 - jumpTuck];
-  let frontKnee: [number, number] = [21 + runSwing * 0.3, 65 - jumpTuck];
-  let backFoot: [number, number] = [-24 + runSwing, 91 - jumpTuck + Math.max(0, -runSwing) * 0.2];
-  let frontFoot: [number, number] = [24 - runSwing, 91 - jumpTuck + Math.max(0, runSwing) * 0.2];
-  if (action === 'kick') {
-    const reach = Math.sin(Math.min(1, kickProgress * 1.3) * Math.PI) * 47;
-    frontKnee = [27 + reach * 0.3, 52 - reach * 0.32];
-    frontFoot = [25 + reach, 58 - reach * 0.28];
-    backKnee = [-24, 69];
-    backFoot = [-30, 93];
-    rotation = -0.07 * Math.sin(kickProgress * Math.PI);
-  }
-  if (action === 'dash') {
-    backKnee = [-34, 62];
-    backFoot = [-52, 80];
-    frontKnee = [30, 56];
-    frontFoot = [49, 70];
-  }
-
-  if (skin === 'wraith') {
-    context.save();
-    context.globalAlpha = 0.72;
-    context.fillStyle = '#1e1b4b';
-    context.strokeStyle = baseColors.core;
-    context.lineWidth = 3;
-    context.beginPath();
-    context.moveTo(-25, -25);
-    context.quadraticCurveTo(-45, 42, -34 - idle * 5, 93);
-    context.lineTo(0, 72);
-    context.lineTo(38 + idle * 4, 94);
-    context.quadraticCurveTo(45, 35, 24, -25);
-    context.closePath();
-    context.fill();
-    context.stroke();
-    context.restore();
-  } else if (skin === 'ronin') {
-    context.save();
-    context.strokeStyle = '#09090b';
-    context.lineWidth = 11;
-    context.lineCap = 'round';
-    context.beginPath();
-    context.moveTo(-34, -42);
-    context.lineTo(42, 68);
-    context.stroke();
-    context.strokeStyle = accent;
-    context.lineWidth = 3;
-    context.stroke();
-    context.restore();
-  }
-
-  const build = skin === 'titan' ? 1.22 : skin === 'ronin' || skin === 'wraith' ? 0.88 : 1;
-  limb(context, [[-13, 40], backKnee, backFoot], 15 * build, colors.dark, colors.core);
-  limb(context, [[13, 40], frontKnee, frontFoot], 16 * build, colors.core, colors.light);
-  limb(context, [[-22, -10], [-31, 10], backHand], 13 * build, colors.dark, colors.core);
-
-  context.save();
-  context.shadowColor = colors.glow;
-  context.shadowBlur = 16;
-  context.fillStyle = colors.armor;
-  context.strokeStyle = '#030712';
-  context.lineWidth = 7;
-  const torsoWidth = skin === 'titan' ? 38 : skin === 'ronin' ? 24 : skin === 'wraith' ? 26 : 27;
-  const shoulderWidth = skin === 'titan' ? 43 : skin === 'ronin' ? 31 : 33;
-  const torsoBottom = skin === 'titan' ? 57 : skin === 'ronin' ? 45 : 50;
-  context.beginPath();
-  context.moveTo(-torsoWidth, -27);
-  context.lineTo(-shoulderWidth, 30);
-  context.lineTo(0, torsoBottom);
-  context.lineTo(shoulderWidth, 30);
-  context.lineTo(torsoWidth, -27);
-  context.lineTo(0, -39);
-  context.closePath();
-  context.fill();
-  context.stroke();
-  context.restore();
-
-  context.strokeStyle = accent;
-  context.fillStyle = colors.core;
-  context.lineWidth = 3;
-  if (skin === 'ronin') {
-    context.beginPath();
-    context.moveTo(-25, -16);
-    context.lineTo(27, 18);
-    context.lineTo(18, 29);
-    context.lineTo(-29, -3);
-    context.closePath();
-    context.fill();
-    context.stroke();
-    context.fillStyle = accent;
-    context.fillRect(-29, 27, 58, 8);
-  } else if (skin === 'titan') {
-    context.beginPath();
-    context.arc(0, 2, 18, 0, Math.PI * 2);
-    context.fill();
-    context.stroke();
-    context.fillStyle = '#020617';
-    context.beginPath();
-    context.arc(0, 2, 8 + idle, 0, Math.PI * 2);
-    context.fill();
-    context.strokeStyle = baseColors.light;
-    context.stroke();
-  } else if (skin === 'wraith') {
-    context.beginPath();
-    context.moveTo(0, -22);
-    context.quadraticCurveTo(25, 1, 0, 31);
-    context.quadraticCurveTo(-25, 1, 0, -22);
-    context.fill();
-    context.stroke();
-    context.fillStyle = accent;
-    context.beginPath();
-    context.arc(1, 3, 5 + Math.abs(idle) * 2, 0, Math.PI * 2);
-    context.fill();
-  } else {
-    context.beginPath();
-    context.moveTo(-18, -18);
-    context.lineTo(0, 29);
-    context.lineTo(18, -18);
-    context.lineTo(0, -7);
-    context.closePath();
-    context.fill();
-    context.stroke();
-  }
-
-  if (skin === 'titan') {
-    for (const side of [-1, 1]) {
-      context.save();
-      context.fillStyle = '#44403c';
-      context.strokeStyle = accent;
+      context.globalAlpha = 0.55;
       context.lineWidth = 3;
       context.beginPath();
-      context.arc(side * 34, -20, 17, 0, Math.PI * 2);
-      context.fill();
+      context.moveTo(30, 69);
+      context.quadraticCurveTo(92, 18, 145, 34);
       context.stroke();
-      context.restore();
+      slash.refresh();
     }
   }
-
-  const scarfWave = idle * 7 + (action === 'run' ? -14 : action === 'dash' ? -25 : 0);
-  context.fillStyle = colors.core;
-  context.beginPath();
-  context.moveTo(-20, -27);
-  context.quadraticCurveTo(-44, -19 + scarfWave, -50, 8 + scarfWave);
-  context.quadraticCurveTo(-34, 0 + scarfWave, -8, -9);
-  context.closePath();
-  context.fill();
-
-  limb(context, [[22, -10], [33, 8], frontHand], 15 * build, colors.core, colors.light);
-
-  const headY = -55;
-  context.save();
-  context.shadowColor = colors.glow;
-  context.shadowBlur = 12;
-  context.fillStyle = '#0b1020';
-  context.strokeStyle = '#030712';
-  context.lineWidth = 6;
-  context.beginPath();
-  context.arc(0, headY, 27, 0, Math.PI * 2);
-  context.fill();
-  context.stroke();
-  context.fillStyle = colors.dark;
-  context.beginPath();
-  context.moveTo(-25, headY - 4);
-  context.lineTo(-12, headY - 25);
-  context.lineTo(0, headY - 31);
-  context.lineTo(12, headY - 25);
-  context.lineTo(25, headY - 4);
-  context.lineTo(17, headY + 15);
-  context.lineTo(-17, headY + 15);
-  context.closePath();
-  context.fill();
-  context.strokeStyle = colors.core;
-  context.lineWidth = 3;
-  context.stroke();
-  context.fillStyle = colors.light;
-  context.shadowColor = colors.core;
-  context.shadowBlur = 10;
-  context.fillRect(3, headY - 5, 15, 4);
-
-  if (skin === 'ronin') {
-    context.shadowBlur = 6;
-    context.fillStyle = accent;
-    context.beginPath();
-    context.moveTo(-6, headY - 27);
-    context.lineTo(2, headY - 49);
-    context.lineTo(9, headY - 25);
-    context.closePath();
-    context.fill();
-    context.fillStyle = colors.core;
-    context.fillRect(-27, headY + 9, 54, 7);
-  } else if (skin === 'titan') {
-    context.fillStyle = accent;
-    context.beginPath();
-    context.moveTo(-20, headY - 20);
-    context.lineTo(-42, headY - 38);
-    context.lineTo(-27, headY - 5);
-    context.moveTo(20, headY - 20);
-    context.lineTo(42, headY - 38);
-    context.lineTo(27, headY - 5);
-    context.fill();
-    context.fillStyle = '#44403c';
-    context.fillRect(-23, headY + 13, 46, 10);
-  } else if (skin === 'wraith') {
-    context.globalAlpha = 0.9;
-    context.fillStyle = '#1e1b4b';
-    context.strokeStyle = accent;
-    context.lineWidth = 4;
-    context.beginPath();
-    context.moveTo(0, headY - 39);
-    context.quadraticCurveTo(38, headY - 18, 29, headY + 26);
-    context.lineTo(0, headY + 17);
-    context.lineTo(-29, headY + 26);
-    context.quadraticCurveTo(-38, headY - 18, 0, headY - 39);
-    context.fill();
-    context.stroke();
-    context.fillStyle = baseColors.light;
-    context.shadowBlur = 18;
-    context.fillRect(-14, headY - 4, 28, 3);
-  }
-  context.restore();
-
-  if (action === 'attack' || action === 'kick' || action === 'special') {
-    const impactPoint = action === 'kick' ? frontFoot : frontHand;
-    const radius = action === 'special' ? 18 + Math.sin(specialProgress * Math.PI) * 20 : action === 'kick' ? 15 : 12;
-    context.save();
-    context.globalAlpha = 0.8;
-    context.strokeStyle = colors.light;
-    context.lineWidth = 5;
-    context.shadowColor = colors.core;
-    context.shadowBlur = 22;
-    context.beginPath();
-    context.arc(impactPoint[0], impactPoint[1], radius, phase, phase + Math.PI * 1.5);
-    context.stroke();
-    if (action === 'special') {
-      context.lineWidth = 3;
-      context.beginPath();
-      context.arc(impactPoint[0], impactPoint[1], radius + 10, -phase, -phase + Math.PI);
-      context.stroke();
-    }
-    context.restore();
-  }
-
-  if (guard) {
-    context.save();
-    context.globalAlpha = 0.55 + frame * 0.1;
-    context.strokeStyle = colors.light;
-    context.lineWidth = 5;
-    context.shadowColor = colors.core;
-    context.shadowBlur = 18;
-    context.beginPath();
-    context.arc(30, 0, 54, -1.25, 1.25);
-    context.stroke();
-    context.restore();
-  }
-
-  context.restore();
 }

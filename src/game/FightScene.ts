@@ -1,11 +1,20 @@
 import Phaser from 'phaser';
-import { ACTION_FRAMES, ACTION_SPEED, ensureFighterTextures, fighterTextureKey } from './sprites';
+import {
+  ACTION_FRAMES,
+  ACTION_SPEED,
+  ensureEffectTextures,
+  fighterColorValue,
+  fighterFrame,
+  FIGHTER_SHEETS,
+  fighterTextureKey,
+} from './sprites';
 import type { NetworkClient } from './network';
 import type { ArenaTheme, FighterAction, FighterColor, FighterSkin, HitEvent, MatchSnapshot, PlayerSnapshot, Team } from './types';
 
 interface FighterView {
   sprite: Phaser.GameObjects.Image;
   shadow: Phaser.GameObjects.Ellipse;
+  aura: Phaser.GameObjects.Ellipse;
   name: Phaser.GameObjects.Text;
   team: Team;
   skin: FighterSkin;
@@ -16,6 +25,7 @@ interface FighterView {
   facing: -1 | 1;
   energyRing: Phaser.GameObjects.Arc;
   lastTrailAt: number;
+  baseScale: number;
 }
 
 export class FightScene extends Phaser.Scene {
@@ -37,10 +47,17 @@ export class FightScene extends Phaser.Scene {
     this.load.image('ember-arena', '/assets/arena-ember-forge.webp');
     this.load.image('neon-arena', '/assets/arena-neon-ruins.webp');
     this.load.image('astral-arena', '/assets/arena-astral-sanctuary.webp');
+    (Object.keys(FIGHTER_SHEETS) as FighterSkin[]).forEach((skin) => {
+      this.load.spritesheet(fighterTextureKey(skin), FIGHTER_SHEETS[skin], {
+        frameWidth: 280,
+        frameHeight: 280,
+        endFrame: 19,
+      });
+    });
   }
 
   create(): void {
-    ensureFighterTextures(this);
+    ensureEffectTextures(this);
     this.cameras.main.setBounds(0, 0, 2200, 900);
     this.cameras.main.setBackgroundColor('#071020');
 
@@ -83,24 +100,30 @@ export class FightScene extends Phaser.Scene {
       view.shadow.y = 695;
       view.shadow.scaleX = Phaser.Math.Clamp(1 - Math.max(0, 690 - view.sprite.y) / 700, 0.45, 1);
       view.shadow.alpha = Phaser.Math.Clamp(0.3 - Math.max(0, 690 - view.sprite.y) / 1_000, 0.08, 0.3);
-      view.name.setPosition(view.sprite.x, view.sprite.y - 207);
-      view.energyRing.setPosition(view.sprite.x, view.sprite.y - 104);
+      view.aura.setPosition(view.sprite.x, view.sprite.y - 88);
+      view.aura.setScale(1 + Math.sin(time / 420) * 0.045);
+      view.name.setPosition(view.sprite.x, view.sprite.y - 226);
+      view.energyRing.setPosition(view.sprite.x, view.sprite.y - 112);
       view.energyRing.setVisible(view.action === 'special');
       if (view.energyRing.visible) view.energyRing.rotation += 0.08;
 
       const frameCount = ACTION_FRAMES[view.action];
       const frame = Math.floor(time / ACTION_SPEED[view.action]) % frameCount;
-      const key = fighterTextureKey(view.team, view.skin, view.color, view.action, frame);
-      if (view.sprite.texture.key !== key) view.sprite.setTexture(key);
+      const key = fighterTextureKey(view.skin);
+      const spriteFrame = fighterFrame(view.action, frame);
+      if (view.sprite.texture.key !== key || Number(view.sprite.frame.name) !== spriteFrame) {
+        view.sprite.setTexture(key, spriteFrame);
+      }
       view.sprite.setFlipX(view.facing === -1);
 
       if ((view.action === 'dash' || view.action === 'special') && time - view.lastTrailAt > 55) {
         view.lastTrailAt = time;
-        const ghost = this.add.image(view.sprite.x, view.sprite.y, key)
+        const ghost = this.add.image(view.sprite.x, view.sprite.y, key, spriteFrame)
           .setOrigin(0.5, 0.94)
           .setFlipX(view.facing === -1)
+          .setScale(view.baseScale)
           .setAlpha(view.action === 'special' ? 0.28 : 0.2)
-          .setTint(view.team === 'blue' ? 0x7dd3fc : 0xfda4af)
+          .setTint(fighterColorValue(view.color))
           .setDepth(2);
         this.tweens.add({
           targets: ghost,
@@ -134,6 +157,7 @@ export class FightScene extends Phaser.Scene {
       if (!liveIds.has(id)) {
         view.sprite.destroy();
         view.shadow.destroy();
+        view.aura.destroy();
         view.name.destroy();
         view.energyRing.destroy();
         this.fighters.delete(id);
@@ -150,27 +174,33 @@ export class FightScene extends Phaser.Scene {
   private updateFighter(player: PlayerSnapshot): void {
     let view = this.fighters.get(player.id);
     if (!view) {
-      ensureFighterTextures(this, player.team, player.skin, player.color);
-      const shadow = this.add.ellipse(player.x, 695, 104, 24, 0x020617, 0.3).setDepth(0);
-      const sprite = this.add.image(player.x, player.y, fighterTextureKey(player.team, player.skin, player.color, 'idle', 0))
+      const accent = fighterColorValue(player.color);
+      const baseScale = player.skin === 'kael' ? 1.15 : 1.1;
+      const shadow = this.add.ellipse(player.x, 695, player.skin === 'kael' ? 120 : 104, 25, 0x020617, 0.42).setDepth(0);
+      const aura = this.add.ellipse(player.x, player.y - 88, player.skin === 'kael' ? 126 : 112, 205, accent, 0.07)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(1);
+      const sprite = this.add.image(player.x, player.y, fighterTextureKey(player.skin), fighterFrame('idle', 0))
         .setOrigin(0.5, 0.94)
+        .setScale(baseScale)
         .setDepth(3);
-      const name = this.add.text(player.x, player.y - 207, player.name.toUpperCase(), {
+      const name = this.add.text(player.x, player.y - 226, player.name.toUpperCase(), {
         fontFamily: 'Poppins, sans-serif',
         fontSize: '15px',
         fontStyle: '700',
-        color: player.team === 'blue' ? '#bae6fd' : '#fecdd3',
+        color: `#${accent.toString(16).padStart(6, '0')}`,
         stroke: '#020617',
         strokeThickness: 5,
       }).setOrigin(0.5).setDepth(6);
-      const energyRing = this.add.circle(player.x, player.y - 104, 76)
-        .setStrokeStyle(3, player.team === 'blue' ? 0x7dd3fc : 0xfda4af, 0.7)
+      const energyRing = this.add.circle(player.x, player.y - 112, 82)
+        .setStrokeStyle(3, accent, 0.75)
         .setBlendMode(Phaser.BlendModes.ADD)
         .setVisible(false)
         .setDepth(2);
       view = {
         sprite,
         shadow,
+        aura,
         name,
         energyRing,
         team: player.team,
@@ -181,6 +211,7 @@ export class FightScene extends Phaser.Scene {
         targetY: player.y,
         facing: player.facing,
         lastTrailAt: 0,
+        baseScale,
       };
       this.fighters.set(player.id, view);
     }
@@ -191,7 +222,16 @@ export class FightScene extends Phaser.Scene {
     if (view.action !== player.action) {
       view.action = player.action;
       if (player.action === 'hurt') {
-        this.tweens.add({ targets: view.sprite, alpha: 0.25, duration: 45, yoyo: true, repeat: 2 });
+        this.tweens.add({
+          targets: view.sprite,
+          alpha: 0.32,
+          scaleX: view.baseScale * 0.94,
+          scaleY: view.baseScale * 1.05,
+          duration: 48,
+          yoyo: true,
+          repeat: 2,
+          onComplete: () => view?.sprite.setAlpha(1).setScale(view.baseScale),
+        });
       }
     }
 
@@ -203,6 +243,7 @@ export class FightScene extends Phaser.Scene {
   }
 
   private playHitEffect(hit: HitEvent): void {
+    const reducedMotion = document.body.classList.contains('reduce-motion');
     const color = hit.special ? 0xf8fafc : hit.blocked ? 0xfbbf24 : hit.kind === 'kick' ? 0xfde68a : 0xffffff;
     const isKick = hit.kind === 'kick';
     const burst = this.add.particles(hit.x, hit.y, 'particle-white', {
@@ -212,12 +253,18 @@ export class FightScene extends Phaser.Scene {
       scale: { start: hit.special ? 1.1 : 0.7, end: 0 },
       alpha: { start: 1, end: 0 },
       tint: color,
-      quantity: hit.special ? 28 : isKick ? 20 : 14,
+      quantity: reducedMotion ? 6 : hit.special ? 28 : isKick ? 20 : 14,
       emitting: false,
     }).setDepth(12);
-    burst.explode(hit.special ? 28 : isKick ? 20 : 14);
+    burst.explode(reducedMotion ? 6 : hit.special ? 28 : isKick ? 20 : 14);
 
     const ring = this.add.circle(hit.x, hit.y, 14).setStrokeStyle(hit.special ? 8 : 5, color, 0.9).setBlendMode(Phaser.BlendModes.ADD).setDepth(11);
+    const slash = this.add.image(hit.x, hit.y, 'impact-slash')
+      .setTint(color)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setRotation(Phaser.Math.FloatBetween(-0.5, 0.5))
+      .setScale(hit.special ? 1.35 : isKick ? 1 : 0.72)
+      .setDepth(13);
     this.tweens.add({
       targets: ring,
       radius: hit.special ? 120 : 60,
@@ -226,9 +273,18 @@ export class FightScene extends Phaser.Scene {
       ease: 'Cubic.Out',
       onComplete: () => ring.destroy(),
     });
+    this.tweens.add({
+      targets: slash,
+      alpha: 0,
+      scaleX: slash.scaleX * 1.35,
+      scaleY: slash.scaleY * 0.7,
+      duration: hit.special ? 300 : 175,
+      ease: 'Quad.Out',
+      onComplete: () => slash.destroy(),
+    });
     this.time.delayedCall(500, () => burst.destroy());
 
-    if (hit.targetId === this.network.id) {
+    if (!reducedMotion && hit.targetId === this.network.id) {
       this.cameras.main.shake(hit.special ? 210 : isKick ? 135 : 95, hit.special ? 0.012 : isKick ? 0.008 : 0.006);
     }
   }

@@ -29,10 +29,10 @@
           </div>
 
           <div class="field-group room-field">
-            <label for="room-code">Código da arena</label>
+            <label for="room-code">Nome da sala</label>
             <div class="input-action">
-              <input id="room-code" name="roomCode" maxlength="6" inputmode="text" autocapitalize="characters" required />
-              <button id="new-room" class="mini-button" type="button" aria-label="Gerar novo código">NOVO</button>
+              <input id="room-code" name="roomCode" maxlength="48" inputmode="text" autocapitalize="sentences" autocomplete="off" placeholder="Ex.: Arena do Tony ⚡" required />
+              <button id="new-room" class="mini-button" type="button" aria-label="Gerar novo nome de sala">NOVA</button>
             </div>
           </div>
 
@@ -53,25 +53,15 @@
           <fieldset class="fighter-picker">
             <legend>Escolha seu personagem</legend>
             <div class="fighter-grid">
-              <button class="fighter-choice selected" type="button" data-fighter="vanguard" aria-pressed="true">
-                <span class="fighter-portrait vanguard-portrait"><i></i><b>V</b></span>
-                <span class="fighter-copy"><strong>VANGUARDA</strong><small>Equilibrado · Controle total</small></span>
-                <span class="fighter-trait">BAL</span>
-              </button>
-              <button class="fighter-choice" type="button" data-fighter="ronin" aria-pressed="false">
-                <span class="fighter-portrait ronin-portrait"><i></i><b>R</b></span>
-                <span class="fighter-copy"><strong>RONIN</strong><small>Ágil · Saltos superiores</small></span>
+              <button class="fighter-choice selected" type="button" data-fighter="astra" aria-pressed="true">
+                <span class="fighter-portrait astra-portrait" role="img" aria-label="Astra Nyx"></span>
+                <span class="fighter-copy"><strong>ASTRA NYX</strong><small>Ágil · Energia elétrica</small></span>
                 <span class="fighter-trait">VEL</span>
               </button>
-              <button class="fighter-choice" type="button" data-fighter="titan" aria-pressed="false">
-                <span class="fighter-portrait titan-portrait"><i></i><b>T</b></span>
-                <span class="fighter-copy"><strong>TITÃ</strong><small>Pesado · Impacto brutal</small></span>
+              <button class="fighter-choice" type="button" data-fighter="kael" aria-pressed="false">
+                <span class="fighter-portrait kael-portrait" role="img" aria-label="Kael Forge"></span>
+                <span class="fighter-copy"><strong>KAEL FORGE</strong><small>Pesado · Punhos vulcânicos</small></span>
                 <span class="fighter-trait">FOR</span>
-              </button>
-              <button class="fighter-choice" type="button" data-fighter="wraith" aria-pressed="false">
-                <span class="fighter-portrait wraith-portrait"><i></i><b>E</b></span>
-                <span class="fighter-copy"><strong>ESPECTRO</strong><small>Arcano · Dash e energia</small></span>
-                <span class="fighter-trait">RIFT</span>
               </button>
             </div>
           </fieldset>
@@ -117,7 +107,7 @@
             <span>ENTRAR NA ARENA</span>
             <span class="button-arrow">→</span>
           </button>
-          <p class="lobby-note">A partida inicia automaticamente quando o segundo jogador entrar com o mesmo código.</p>
+          <p class="lobby-note">A partida inicia automaticamente quando o segundo jogador entrar na mesma sala.</p>
         </form>
       </section>
 
@@ -147,7 +137,13 @@
             <strong id="banner-title">AGUARDANDO RIVAL</strong>
             <button id="share-match" class="share-button" type="button">COPIAR CONVITE</button>
           </div>
+          <div id="combo-indicator" class="combo-indicator" aria-live="polite">
+            <strong id="combo-count">2</strong><span>COMBO</span>
+          </div>
 
+          <button id="motion-button" class="utility-button motion-button" type="button" aria-label="Reduzir animações e tremores" aria-pressed="false">
+            <span>FX</span>
+          </button>
           <button id="fullscreen-button" class="utility-button" type="button" aria-label="Tela cheia">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /></svg>
           </button>

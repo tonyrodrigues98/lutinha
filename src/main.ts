@@ -10,13 +10,17 @@ import type { ArenaTheme, FighterColor, FighterSkin, HitEvent, MatchSnapshot, Pl
 
 const network = new NetworkClient();
 let selectedTeam: Team = 'blue';
-let selectedFighter: FighterSkin = 'vanguard';
+let selectedFighter: FighterSkin = 'astra';
 let selectedColor: FighterColor = 'azure';
 let selectedArena: ArenaTheme = 'riftfall';
 let game: Phaser.Game | undefined;
 let latestSnapshot: MatchSnapshot | undefined;
 let inputSequence = 0;
 let lastAudioHit = 0;
+let comboCount = 0;
+let comboAttackerId = '';
+let lastComboAt = 0;
+let comboTimer = 0;
 
 const isEditableTarget = (target: EventTarget | null): boolean => (
   target instanceof HTMLInputElement
@@ -84,6 +88,14 @@ const bannerTitle = $('#banner-title');
 const shareButton = $('#share-match') as HTMLButtonElement;
 const connectionState = $('#connection-state');
 const specialButton = $('#special-button') as HTMLButtonElement;
+const comboIndicator = $('#combo-indicator');
+const comboCountLabel = $('#combo-count');
+const motionButton = $('#motion-button') as HTMLButtonElement;
+
+const savedReducedMotion = localStorage.getItem('riftfall-reduced-motion') === 'true';
+document.body.classList.toggle('reduce-motion', savedReducedMotion);
+motionButton.setAttribute('aria-pressed', String(savedReducedMotion));
+motionButton.classList.toggle('active', savedReducedMotion);
 
 async function enterImmersiveMode(): Promise<void> {
   try {
@@ -104,14 +116,28 @@ async function enterImmersiveMode(): Promise<void> {
 }
 
 const roomAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-function generateRoomCode(): string {
+const roomControlCharacters = /[\u0000-\u001f\u007f-\u009f]/g;
+const sanitizeRoomName = (value: string, trim = false): string => {
+  const safeValue = value.normalize('NFC').replace(roomControlCharacters, '');
+  const limitedValue = Array.from(safeValue).slice(0, 24).join('');
+  return trim ? limitedValue.trim() : limitedValue;
+};
+
+function generateRoomName(): string {
   const values = new Uint32Array(5);
   crypto.getRandomValues(values);
-  return [...values].map((value) => roomAlphabet[value % roomAlphabet.length]).join('');
+  const suffix = [...values].map((value) => roomAlphabet[value % roomAlphabet.length]).join('');
+  return `Arena ${suffix}`;
+}
+
+function roomInviteUrl(roomName: string): string {
+  const invite = new URL(location.pathname, location.origin);
+  invite.searchParams.set('room', roomName);
+  return invite.toString();
 }
 
 const queryRoom = new URLSearchParams(location.search).get('room');
-roomInput.value = (queryRoom?.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || generateRoomCode());
+roomInput.value = sanitizeRoomName(queryRoom || '', true) || generateRoomName();
 nameInput.value = localStorage.getItem('riftfall-player-name') || '';
 
 document.querySelectorAll<HTMLButtonElement>('.team-choice').forEach((button) => {
@@ -138,7 +164,7 @@ document.querySelectorAll<HTMLButtonElement>('.fighter-choice').forEach((button)
 });
 
 const savedFighter = localStorage.getItem('riftfall-fighter') as FighterSkin | null;
-if (savedFighter && ['vanguard', 'ronin', 'titan', 'wraith'].includes(savedFighter)) {
+if (savedFighter && ['astra', 'kael'].includes(savedFighter)) {
   document.querySelector<HTMLButtonElement>(`.fighter-choice[data-fighter="${savedFighter}"]`)?.click();
 }
 
@@ -181,12 +207,12 @@ if (savedArena && ['riftfall', 'ember', 'neon', 'astral'].includes(savedArena)) 
 }
 
 $('#new-room').addEventListener('click', () => {
-  roomInput.value = generateRoomCode();
+  roomInput.value = generateRoomName();
   lobbyError.textContent = '';
 });
 
 roomInput.addEventListener('input', () => {
-  roomInput.value = roomInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  roomInput.value = sanitizeRoomName(roomInput.value);
 });
 
 joinForm.addEventListener('submit', async (event) => {
@@ -197,7 +223,8 @@ joinForm.addEventListener('submit', async (event) => {
   joinButton.querySelector('span')!.textContent = 'CONECTANDO...';
 
   const name = nameInput.value.trim();
-  const roomCode = roomInput.value.trim().toUpperCase();
+  const roomCode = sanitizeRoomName(roomInput.value, true);
+  roomInput.value = roomCode;
   const result = await network.join({
     name,
     roomCode,
@@ -214,7 +241,7 @@ joinForm.addEventListener('submit', async (event) => {
   }
 
   localStorage.setItem('riftfall-player-name', name);
-  history.replaceState(null, '', `${location.pathname}?room=${result.roomCode}`);
+  history.replaceState(null, '', roomInviteUrl(result.roomCode || roomCode));
   document.body.classList.add('game-active');
   lobby.classList.add('hidden');
   gameShell.classList.remove('hidden');
@@ -305,6 +332,25 @@ network.onSnapshot((snapshot) => {
   if (snapshot.hit && snapshot.hit.id !== lastAudioHit) {
     lastAudioHit = snapshot.hit.id;
     playImpactSound(snapshot.hit);
+    const now = Date.now();
+    comboCount = snapshot.hit.attackerId === comboAttackerId && now - lastComboAt < 1_250
+      ? comboCount + 1
+      : 1;
+    comboAttackerId = snapshot.hit.attackerId;
+    lastComboAt = now;
+    window.clearTimeout(comboTimer);
+    comboIndicator.classList.toggle('local', snapshot.hit.attackerId === network.id);
+    if (comboCount >= 2) {
+      comboCountLabel.textContent = String(comboCount);
+      comboIndicator.classList.remove('visible');
+      void comboIndicator.offsetWidth;
+      comboIndicator.classList.add('visible');
+    }
+    comboTimer = window.setTimeout(() => {
+      comboIndicator.classList.remove('visible');
+      comboCount = 0;
+      comboAttackerId = '';
+    }, 1_050);
   }
 });
 
@@ -339,7 +385,7 @@ function updateHud(snapshot: MatchSnapshot): void {
 
   if (snapshot.status === 'waiting') {
     banner.classList.add('visible');
-    bannerKicker.textContent = `ARENA ${snapshot.roomCode}`;
+    bannerKicker.textContent = `SALA ${snapshot.roomCode}`;
     bannerTitle.textContent = 'AGUARDANDO RIVAL';
     shareButton.classList.remove('hidden');
   } else if (snapshot.status === 'countdown') {
@@ -366,8 +412,8 @@ function updateHud(snapshot: MatchSnapshot): void {
 
 shareButton.addEventListener('click', async () => {
   const roomCode = latestSnapshot?.roomCode || roomInput.value;
-  const invite = `${location.origin}${location.pathname}?room=${roomCode}`;
-  const shareData = { title: 'Riftfall Duel', text: `Entre na arena ${roomCode} e lute comigo.`, url: invite };
+  const invite = roomInviteUrl(roomCode);
+  const shareData = { title: 'Riftfall Duel', text: `Entre na sala “${roomCode}” e lute comigo.`, url: invite };
   const canShare = typeof navigator.share === 'function';
   try {
     if (canShare) await navigator.share(shareData);
@@ -385,9 +431,17 @@ $('#fullscreen-button').addEventListener('click', async () => {
   else await enterImmersiveMode();
 });
 
+motionButton.addEventListener('click', () => {
+  const reduced = !document.body.classList.contains('reduce-motion');
+  document.body.classList.toggle('reduce-motion', reduced);
+  motionButton.classList.toggle('active', reduced);
+  motionButton.setAttribute('aria-pressed', String(reduced));
+  localStorage.setItem('riftfall-reduced-motion', String(reduced));
+});
+
 $('#leave-button').addEventListener('click', () => {
   network.leave();
-  location.href = `${location.pathname}?room=${latestSnapshot?.roomCode || roomInput.value}`;
+  location.href = roomInviteUrl(latestSnapshot?.roomCode || roomInput.value);
 });
 
 let audioContext: AudioContext | undefined;
