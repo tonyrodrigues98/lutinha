@@ -6,8 +6,10 @@ const SIZE = { width: 150, height: 210 };
 export const ACTION_FRAMES: Record<FighterAction, number> = {
   idle: 6,
   run: 8,
+  dash: 4,
   jump: 3,
   attack: 6,
+  kick: 7,
   special: 8,
   block: 3,
   hurt: 3,
@@ -17,8 +19,10 @@ export const ACTION_FRAMES: Record<FighterAction, number> = {
 export const ACTION_SPEED: Record<FighterAction, number> = {
   idle: 115,
   run: 72,
+  dash: 45,
   jump: 120,
   attack: 55,
+  kick: 62,
   special: 78,
   block: 115,
   hurt: 80,
@@ -120,6 +124,7 @@ function drawFighter(
   let fade = 1;
 
   if (action === 'run') bodyY += Math.abs(run) * 4;
+  if (action === 'dash') { crouch = 13; bodyX += 5; rotation = 0.11; }
   if (action === 'block') { crouch = 10; bodyX -= 3; }
   if (action === 'hurt') { bodyX -= 7 + frame * 2; rotation = -0.08; }
   if (action === 'ko') {
@@ -139,6 +144,7 @@ function drawFighter(
   const runSwing = action === 'run' ? run * 21 : 0;
   const jumpTuck = action === 'jump' ? 16 : 0;
   const attackProgress = action === 'attack' ? frame / (frameCount - 1) : 0;
+  const kickProgress = action === 'kick' ? frame / (frameCount - 1) : 0;
   const specialProgress = action === 'special' ? frame / (frameCount - 1) : 0;
   const guard = action === 'block';
 
@@ -158,11 +164,27 @@ function drawFighter(
     frontHand = [28 + reach, -24];
   }
 
-  const backFoot: [number, number] = [-24 + runSwing, 91 - jumpTuck + Math.max(0, -runSwing) * 0.2];
-  const frontFoot: [number, number] = [24 - runSwing, 91 - jumpTuck + Math.max(0, runSwing) * 0.2];
+  let backKnee: [number, number] = [-21 - runSwing * 0.3, 65 - jumpTuck];
+  let frontKnee: [number, number] = [21 + runSwing * 0.3, 65 - jumpTuck];
+  let backFoot: [number, number] = [-24 + runSwing, 91 - jumpTuck + Math.max(0, -runSwing) * 0.2];
+  let frontFoot: [number, number] = [24 - runSwing, 91 - jumpTuck + Math.max(0, runSwing) * 0.2];
+  if (action === 'kick') {
+    const reach = Math.sin(Math.min(1, kickProgress * 1.3) * Math.PI) * 47;
+    frontKnee = [27 + reach * 0.3, 52 - reach * 0.32];
+    frontFoot = [25 + reach, 58 - reach * 0.28];
+    backKnee = [-24, 69];
+    backFoot = [-30, 93];
+    rotation = -0.07 * Math.sin(kickProgress * Math.PI);
+  }
+  if (action === 'dash') {
+    backKnee = [-34, 62];
+    backFoot = [-52, 80];
+    frontKnee = [30, 56];
+    frontFoot = [49, 70];
+  }
 
-  limb(context, [[-13, 40], [-21 - runSwing * 0.3, 65 - jumpTuck], backFoot], 15, colors.dark, colors.core);
-  limb(context, [[13, 40], [21 + runSwing * 0.3, 65 - jumpTuck], frontFoot], 16, colors.core, colors.light);
+  limb(context, [[-13, 40], backKnee, backFoot], 15, colors.dark, colors.core);
+  limb(context, [[13, 40], frontKnee, frontFoot], 16, colors.core, colors.light);
   limb(context, [[-22, -10], [-31, 10], backHand], 13, colors.dark, colors.core);
 
   context.save();
@@ -195,7 +217,7 @@ function drawFighter(
   context.lineWidth = 3;
   context.stroke();
 
-  const scarfWave = idle * 7 + (action === 'run' ? -14 : 0);
+  const scarfWave = idle * 7 + (action === 'run' ? -14 : action === 'dash' ? -25 : 0);
   context.fillStyle = colors.core;
   context.beginPath();
   context.moveTo(-20, -27);
@@ -237,9 +259,9 @@ function drawFighter(
   context.fillRect(3, headY - 5, 15, 4);
   context.restore();
 
-  if (action === 'attack' || action === 'special') {
-    const hand = frontHand;
-    const radius = action === 'special' ? 18 + Math.sin(specialProgress * Math.PI) * 20 : 12;
+  if (action === 'attack' || action === 'kick' || action === 'special') {
+    const impactPoint = action === 'kick' ? frontFoot : frontHand;
+    const radius = action === 'special' ? 18 + Math.sin(specialProgress * Math.PI) * 20 : action === 'kick' ? 15 : 12;
     context.save();
     context.globalAlpha = 0.8;
     context.strokeStyle = colors.light;
@@ -247,12 +269,12 @@ function drawFighter(
     context.shadowColor = colors.core;
     context.shadowBlur = 22;
     context.beginPath();
-    context.arc(hand[0], hand[1], radius, phase, phase + Math.PI * 1.5);
+    context.arc(impactPoint[0], impactPoint[1], radius, phase, phase + Math.PI * 1.5);
     context.stroke();
     if (action === 'special') {
       context.lineWidth = 3;
       context.beginPath();
-      context.arc(hand[0], hand[1], radius + 10, -phase, -phase + Math.PI);
+      context.arc(impactPoint[0], impactPoint[1], radius + 10, -phase, -phase + Math.PI);
       context.stroke();
     }
     context.restore();
