@@ -172,6 +172,8 @@ svg * {
 .join-card {
   position: relative;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: clamp(22px, 3vw, 36px);
   border: 1px solid rgba(255, 255, 255, .16);
   border-radius: 28px;
@@ -250,6 +252,7 @@ svg * {
 
 .team-choice {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 12px;
   min-height: 78px;
@@ -258,6 +261,7 @@ svg * {
   border-radius: 16px;
   text-align: left;
   background: rgba(2, 6, 23, .58);
+  overflow: hidden;
   cursor: pointer;
   transition: transform .2s, border-color .2s, background .2s, box-shadow .2s;
 }
@@ -282,6 +286,7 @@ svg * {
 .team-choice.blue .team-emblem { background: linear-gradient(145deg, #38bdf8, #075985); box-shadow: 0 0 24px rgba(56, 189, 248, .35); }
 .team-choice.red .team-emblem { background: linear-gradient(145deg, #fb4f58, #991b1b); box-shadow: 0 0 24px rgba(251, 79, 88, .35); }
 .team-choice strong { display: block; font-size: 13px; letter-spacing: .06em; }
+.team-choice > span:last-child { min-width: 0; }
 .team-choice small { display: block; margin-top: 3px; color: #64748b; font-size: 9px; line-height: 1.25; }
 
 .fighter-picker { min-width: 0; padding: 0; margin: 0 0 17px; border: 0; }
@@ -327,75 +332,23 @@ svg * {
 .fighter-choice.selected::after { opacity: 1; }
 
 .fighter-portrait {
-  position: relative;
-  display: grid;
-  width: 50px;
-  height: 60px;
-  place-items: center;
+  display: block;
+  flex: 0 0 58px;
+  width: 58px;
+  height: 64px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 13px;
-  background: radial-gradient(circle at 50% 25%, rgba(255, 255, 255, .12), transparent 42%), #070b16;
-}
-
-.fighter-portrait i {
-  position: absolute;
-  top: 17px;
-  left: 50%;
-  width: 24px;
-  height: 37px;
-  border: 2px solid rgba(255, 255, 255, .2);
-  border-radius: 8px 8px 5px 5px;
-  background: linear-gradient(#334155, #0f172a);
-  transform: translateX(-50%);
+  background-color: #070b16;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  background-size: 500% 400%;
+  box-shadow: inset 0 0 18px rgba(255, 255, 255, .06);
   animation: fighter-preview 1.5s ease-in-out infinite alternate;
 }
 
-.fighter-portrait i::before {
-  content: '';
-  position: absolute;
-  top: -13px;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, .25);
-  border-radius: 50%;
-  background: #111827;
-  transform: translateX(-50%);
-}
-
-.fighter-portrait i::after {
-  content: '';
-  position: absolute;
-  top: 7px;
-  left: -10px;
-  width: 40px;
-  height: 8px;
-  border-radius: 999px;
-  background: currentColor;
-  box-shadow: 0 0 13px currentColor;
-}
-
-.fighter-portrait b {
-  position: absolute;
-  right: 4px;
-  bottom: 1px;
-  z-index: 2;
-  color: rgba(255, 255, 255, .32);
-  font-size: 17px;
-  line-height: 1;
-}
-
-.vanguard-portrait { color: #38bdf8; }
-.ronin-portrait { color: #fbbf24; }
-.ronin-portrait i { width: 18px; transform: translateX(-50%) skewX(-4deg); }
-.ronin-portrait i::before { border-radius: 50% 50% 10% 10%; box-shadow: 0 -8px 0 -5px #fbbf24; }
-.titan-portrait { color: #fb923c; }
-.titan-portrait i { width: 34px; height: 39px; border-radius: 12px 12px 4px 4px; }
-.titan-portrait i::before { width: 25px; border-radius: 7px; }
-.wraith-portrait { color: #c4b5fd; }
-.wraith-portrait i { width: 29px; height: 42px; clip-path: polygon(50% 0, 100% 27%, 82% 100%, 50% 83%, 18% 100%, 0 27%); background: linear-gradient(#4c1d95, #1e1b4b); }
-.wraith-portrait i::before { border-radius: 50% 50% 35% 35%; background: #1e1b4b; }
+.astra-portrait { background-image: radial-gradient(circle at 50% 42%, rgba(34, 211, 238, .22), transparent 56%), url('/assets/characters/astra-nyx-sheet.webp'); }
+.kael-portrait { background-image: radial-gradient(circle at 50% 42%, rgba(251, 146, 60, .22), transparent 56%), url('/assets/characters/kael-forge-sheet.webp'); }
 
 @keyframes fighter-preview {
   from { translate: 0 2px; rotate: -1deg; }
@@ -629,6 +582,30 @@ svg * {
 .match-banner span { color: #94a3b8; font-size: 9px; font-weight: 700; letter-spacing: .22em; }
 .match-banner strong { margin-top: 4px; font-size: clamp(20px, 4vw, 38px); line-height: 1; letter-spacing: -.03em; }
 
+.combo-indicator {
+  position: absolute;
+  top: 27%;
+  right: 19%;
+  display: flex;
+  z-index: 8;
+  align-items: baseline;
+  gap: 7px;
+  opacity: 0;
+  pointer-events: none;
+  color: #fecdd3;
+  filter: drop-shadow(0 5px 8px rgba(0, 0, 0, .72));
+  transform: translateY(12px) rotate(-4deg) scale(.82);
+}
+.combo-indicator.local { right: auto; left: 19%; color: #bae6fd; transform: translateY(12px) rotate(4deg) scale(.82); }
+.combo-indicator.visible { animation: combo-pop 1s cubic-bezier(.16, 1, .3, 1) both; }
+.combo-indicator strong { font-size: clamp(34px, 6vw, 64px); font-weight: 800; font-style: italic; line-height: .8; }
+.combo-indicator span { font-size: clamp(9px, 1.3vw, 13px); font-weight: 800; letter-spacing: .15em; }
+@keyframes combo-pop {
+  0% { opacity: 0; transform: translateY(14px) scale(.65); }
+  18%, 76% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-12px) scale(.9); }
+}
+
 .share-button {
   margin-top: 16px;
   padding: 10px 15px;
@@ -659,6 +636,15 @@ svg * {
 
 .utility-button svg { width: 17px; fill: none; stroke: #cbd5e1; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .leave-button { right: max(60px, calc(env(safe-area-inset-right) + 42px)); }
+.motion-button { right: max(102px, calc(env(safe-area-inset-right) + 84px)); }
+.motion-button span { color: #cbd5e1; font-size: 9px; font-weight: 800; letter-spacing: .05em; }
+.motion-button.active { border-color: #fbbf24; background: rgba(120, 53, 15, .72); }
+
+body.reduce-motion .fighter-portrait,
+body.reduce-motion .lobby-atmosphere,
+body.reduce-motion .health-fill.critical,
+body.reduce-motion .special-button.ready { animation: none !important; }
+body.reduce-motion .combo-indicator.visible { animation-duration: .2s; }
 
 .touch-controls { position: absolute; inset: 0; z-index: 7; pointer-events: none; touch-action: none; }
 .move-cluster,

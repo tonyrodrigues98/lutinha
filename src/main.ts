@@ -10,13 +10,17 @@ import type { ArenaTheme, FighterColor, FighterSkin, HitEvent, MatchSnapshot, Pl
 
 const network = new NetworkClient();
 let selectedTeam: Team = 'blue';
-let selectedFighter: FighterSkin = 'vanguard';
+let selectedFighter: FighterSkin = 'astra';
 let selectedColor: FighterColor = 'azure';
 let selectedArena: ArenaTheme = 'riftfall';
 let game: Phaser.Game | undefined;
 let latestSnapshot: MatchSnapshot | undefined;
 let inputSequence = 0;
 let lastAudioHit = 0;
+let comboCount = 0;
+let comboAttackerId = '';
+let lastComboAt = 0;
+let comboTimer = 0;
 
 const isEditableTarget = (target: EventTarget | null): boolean => (
   target instanceof HTMLInputElement
@@ -84,6 +88,14 @@ const bannerTitle = $('#banner-title');
 const shareButton = $('#share-match') as HTMLButtonElement;
 const connectionState = $('#connection-state');
 const specialButton = $('#special-button') as HTMLButtonElement;
+const comboIndicator = $('#combo-indicator');
+const comboCountLabel = $('#combo-count');
+const motionButton = $('#motion-button') as HTMLButtonElement;
+
+const savedReducedMotion = localStorage.getItem('riftfall-reduced-motion') === 'true';
+document.body.classList.toggle('reduce-motion', savedReducedMotion);
+motionButton.setAttribute('aria-pressed', String(savedReducedMotion));
+motionButton.classList.toggle('active', savedReducedMotion);
 
 async function enterImmersiveMode(): Promise<void> {
   try {
@@ -138,7 +150,7 @@ document.querySelectorAll<HTMLButtonElement>('.fighter-choice').forEach((button)
 });
 
 const savedFighter = localStorage.getItem('riftfall-fighter') as FighterSkin | null;
-if (savedFighter && ['vanguard', 'ronin', 'titan', 'wraith'].includes(savedFighter)) {
+if (savedFighter && ['astra', 'kael'].includes(savedFighter)) {
   document.querySelector<HTMLButtonElement>(`.fighter-choice[data-fighter="${savedFighter}"]`)?.click();
 }
 
@@ -305,6 +317,25 @@ network.onSnapshot((snapshot) => {
   if (snapshot.hit && snapshot.hit.id !== lastAudioHit) {
     lastAudioHit = snapshot.hit.id;
     playImpactSound(snapshot.hit);
+    const now = Date.now();
+    comboCount = snapshot.hit.attackerId === comboAttackerId && now - lastComboAt < 1_250
+      ? comboCount + 1
+      : 1;
+    comboAttackerId = snapshot.hit.attackerId;
+    lastComboAt = now;
+    window.clearTimeout(comboTimer);
+    comboIndicator.classList.toggle('local', snapshot.hit.attackerId === network.id);
+    if (comboCount >= 2) {
+      comboCountLabel.textContent = String(comboCount);
+      comboIndicator.classList.remove('visible');
+      void comboIndicator.offsetWidth;
+      comboIndicator.classList.add('visible');
+    }
+    comboTimer = window.setTimeout(() => {
+      comboIndicator.classList.remove('visible');
+      comboCount = 0;
+      comboAttackerId = '';
+    }, 1_050);
   }
 });
 
@@ -383,6 +414,14 @@ shareButton.addEventListener('click', async () => {
 $('#fullscreen-button').addEventListener('click', async () => {
   if (document.fullscreenElement) await document.exitFullscreen().catch(() => undefined);
   else await enterImmersiveMode();
+});
+
+motionButton.addEventListener('click', () => {
+  const reduced = !document.body.classList.contains('reduce-motion');
+  document.body.classList.toggle('reduce-motion', reduced);
+  motionButton.classList.toggle('active', reduced);
+  motionButton.setAttribute('aria-pressed', String(reduced));
+  localStorage.setItem('riftfall-reduced-motion', String(reduced));
 });
 
 $('#leave-button').addEventListener('click', () => {

@@ -1,4 +1,4 @@
-const CACHE = 'riftfall-v7';
+const CACHE = 'riftfall-product-v1';
 const CORE = [
   '/',
   '/manifest.webmanifest',
@@ -7,6 +7,8 @@ const CORE = [
   '/assets/arena-ember-forge.webp',
   '/assets/arena-neon-ruins.webp',
   '/assets/arena-astral-sanctuary.webp',
+  '/assets/characters/astra-nyx-sheet.webp',
+  '/assets/characters/kael-forge-sheet.webp',
 ];
 
 self.addEventListener('install', (event) => {
