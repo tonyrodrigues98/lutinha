@@ -33,10 +33,8 @@ const FIGHTER_STATS: Record<FighterSkin, {
   defense: number;
   energy: number;
 }> = {
-  vanguard: { speed: 1, jump: 1, dash: 1, damage: 1, defense: 1, energy: 1 },
-  ronin: { speed: 1.13, jump: 1.09, dash: 1.05, damage: 0.93, defense: 1.06, energy: 1.05 },
-  titan: { speed: 0.86, jump: 0.9, dash: 0.88, damage: 1.18, defense: 0.88, energy: 0.9 },
-  wraith: { speed: 1.06, jump: 1.03, dash: 1.2, damage: 0.97, defense: 1.03, energy: 1.2 },
+  astra: { speed: 1.12, jump: 1.08, dash: 1.16, damage: 0.96, defense: 1.04, energy: 1.12 },
+  kael: { speed: 0.9, jump: 0.92, dash: 0.92, damage: 1.16, defense: 0.9, energy: 0.92 },
 };
 
 interface FighterState {
@@ -157,7 +155,7 @@ const createFighter = (id: string, name: string, team: Team, skin: FighterSkin, 
 const cleanCode = (value: unknown) => String(value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
 const cleanName = (value: unknown) => String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 14);
 const cleanSkin = (value: unknown): FighterSkin | undefined => (
-  ['vanguard', 'ronin', 'titan', 'wraith'] as FighterSkin[]
+  ['astra', 'kael'] as FighterSkin[]
 ).find((skin) => skin === value);
 const cleanColor = (value: unknown): FighterColor | undefined => (
   ['azure', 'crimson', 'emerald', 'violet', 'gold', 'fuchsia', 'cyan', 'lime', 'orange', 'ice', 'coral', 'silver'] as FighterColor[]
@@ -220,7 +218,11 @@ function makeSnapshot(room: RoomState, now: number): MatchSnapshot {
     energy: Math.max(0, Math.min(100, Math.round(player.energy))),
     facing: player.facing,
     grounded: player.grounded,
-    action: fighterAction(player, now),
+    action: room.status === 'countdown'
+      ? 'intro'
+      : room.status === 'matchover' && room.winnerId === player.id
+        ? 'victory'
+        : fighterAction(player, now),
     wins: player.wins,
   }));
 

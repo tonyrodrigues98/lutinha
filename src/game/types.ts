@@ -1,9 +1,9 @@
 export type Team = 'blue' | 'red';
-export type FighterSkin = 'vanguard' | 'ronin' | 'titan' | 'wraith';
+export type FighterSkin = 'astra' | 'kael';
 export type FighterColor = 'azure' | 'crimson' | 'emerald' | 'violet' | 'gold' | 'fuchsia' | 'cyan' | 'lime' | 'orange' | 'ice' | 'coral' | 'silver';
 export type ArenaTheme = 'riftfall' | 'ember' | 'neon' | 'astral';
 export type AttackKind = 'attack' | 'kick' | 'special';
-export type FighterAction = 'idle' | 'run' | 'dash' | 'jump' | AttackKind | 'block' | 'hurt' | 'ko';
+export type FighterAction = 'intro' | 'idle' | 'run' | 'dash' | 'jump' | AttackKind | 'block' | 'hurt' | 'ko' | 'victory';
 export type MatchStatus = 'waiting' | 'countdown' | 'fighting' | 'roundover' | 'matchover';
 
 export interface PlayerInput {
