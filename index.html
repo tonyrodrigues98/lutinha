@@ -50,6 +50,32 @@
             </div>
           </fieldset>
 
+          <fieldset class="fighter-picker">
+            <legend>Escolha seu personagem</legend>
+            <div class="fighter-grid">
+              <button class="fighter-choice selected" type="button" data-fighter="vanguard" aria-pressed="true">
+                <span class="fighter-portrait vanguard-portrait"><i></i><b>V</b></span>
+                <span class="fighter-copy"><strong>VANGUARDA</strong><small>Equilibrado · Controle total</small></span>
+                <span class="fighter-trait">BAL</span>
+              </button>
+              <button class="fighter-choice" type="button" data-fighter="ronin" aria-pressed="false">
+                <span class="fighter-portrait ronin-portrait"><i></i><b>R</b></span>
+                <span class="fighter-copy"><strong>RONIN</strong><small>Ágil · Saltos superiores</small></span>
+                <span class="fighter-trait">VEL</span>
+              </button>
+              <button class="fighter-choice" type="button" data-fighter="titan" aria-pressed="false">
+                <span class="fighter-portrait titan-portrait"><i></i><b>T</b></span>
+                <span class="fighter-copy"><strong>TITÃ</strong><small>Pesado · Impacto brutal</small></span>
+                <span class="fighter-trait">FOR</span>
+              </button>
+              <button class="fighter-choice" type="button" data-fighter="wraith" aria-pressed="false">
+                <span class="fighter-portrait wraith-portrait"><i></i><b>E</b></span>
+                <span class="fighter-copy"><strong>ESPECTRO</strong><small>Arcano · Dash e energia</small></span>
+                <span class="fighter-trait">RIFT</span>
+              </button>
+            </div>
+          </fieldset>
+
           <p id="lobby-error" class="lobby-error" role="alert"></p>
           <button id="join-button" class="primary-button" type="submit">
             <span>ENTRAR NA ARENA</span>
