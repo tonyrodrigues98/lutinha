@@ -76,6 +76,42 @@
             </div>
           </fieldset>
 
+          <fieldset class="color-picker">
+            <legend>Cor do lutador</legend>
+            <div class="color-grid">
+              <button class="color-choice selected" type="button" data-color="azure" aria-label="Azul elétrico" aria-pressed="true" style="--swatch:#38bdf8"></button>
+              <button class="color-choice" type="button" data-color="crimson" aria-label="Carmesim" aria-pressed="false" style="--swatch:#fb4f58"></button>
+              <button class="color-choice" type="button" data-color="emerald" aria-label="Esmeralda" aria-pressed="false" style="--swatch:#34d399"></button>
+              <button class="color-choice" type="button" data-color="violet" aria-label="Violeta" aria-pressed="false" style="--swatch:#8b5cf6"></button>
+              <button class="color-choice" type="button" data-color="gold" aria-label="Dourado" aria-pressed="false" style="--swatch:#fbbf24"></button>
+              <button class="color-choice" type="button" data-color="fuchsia" aria-label="Fúcsia" aria-pressed="false" style="--swatch:#e879f9"></button>
+              <button class="color-choice" type="button" data-color="cyan" aria-label="Ciano" aria-pressed="false" style="--swatch:#22d3ee"></button>
+              <button class="color-choice" type="button" data-color="lime" aria-label="Lima" aria-pressed="false" style="--swatch:#a3e635"></button>
+              <button class="color-choice" type="button" data-color="orange" aria-label="Laranja" aria-pressed="false" style="--swatch:#fb923c"></button>
+              <button class="color-choice" type="button" data-color="ice" aria-label="Gelo" aria-pressed="false" style="--swatch:#dbeafe"></button>
+              <button class="color-choice" type="button" data-color="coral" aria-label="Coral" aria-pressed="false" style="--swatch:#fda4af"></button>
+              <button class="color-choice" type="button" data-color="silver" aria-label="Prata" aria-pressed="false" style="--swatch:#cbd5e1"></button>
+            </div>
+          </fieldset>
+
+          <fieldset class="arena-picker">
+            <legend>Escolha a arena</legend>
+            <div class="arena-grid">
+              <button class="arena-choice selected" type="button" data-arena="riftfall" aria-pressed="true">
+                <span class="arena-thumb riftfall-thumb"></span><span><strong>RIFTFALL</strong><small>Templo da fenda</small></span>
+              </button>
+              <button class="arena-choice" type="button" data-arena="ember" aria-pressed="false">
+                <span class="arena-thumb ember-thumb"></span><span><strong>FORJA</strong><small>Brasas eternas</small></span>
+              </button>
+              <button class="arena-choice" type="button" data-arena="neon" aria-pressed="false">
+                <span class="arena-thumb neon-thumb"></span><span><strong>NEON</strong><small>Ruínas elétricas</small></span>
+              </button>
+              <button class="arena-choice" type="button" data-arena="astral" aria-pressed="false">
+                <span class="arena-thumb astral-thumb"></span><span><strong>ASTRAL</strong><small>Santuário celeste</small></span>
+              </button>
+            </div>
+          </fieldset>
+
           <p id="lobby-error" class="lobby-error" role="alert"></p>
           <button id="join-button" class="primary-button" type="submit">
             <span>ENTRAR NA ARENA</span>

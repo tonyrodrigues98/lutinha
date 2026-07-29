@@ -102,16 +102,25 @@ try {
   if (!healthResponse.ok || !(await healthResponse.json()).ok) throw new Error('Health check falhou');
   if (!pageResponse.ok || !(await pageResponse.text()).includes('RIFTFALL')) throw new Error('Frontend de produção não foi servido');
 
-  await join(blue, { roomCode, name: 'Azul Teste', team: 'blue', skin: 'ronin' });
+  await join(blue, { roomCode, name: 'Azul Teste', team: 'blue', skin: 'ronin', color: 'emerald', arena: 'ember' });
   const duplicateTeam = await new Promise((resolve, reject) => {
-    red.timeout(5_000).emit('joinMatch', { roomCode, name: 'Azul Intruso', team: 'blue', skin: 'wraith' }, (error, result) => {
+    red.timeout(5_000).emit('joinMatch', {
+      roomCode,
+      name: 'Azul Intruso',
+      team: 'blue',
+      skin: 'wraith',
+      color: 'violet',
+      arena: 'neon',
+    }, (error, result) => {
       if (error) reject(error);
       else resolve(result);
     });
   });
   if (duplicateTeam.ok || !duplicateTeam.message.includes('já foi escolhido')) throw new Error('Reserva de time não foi respeitada');
-  await join(red, { roomCode, name: 'Vermelho Teste', team: 'red', skin: 'titan' });
+  await join(red, { roomCode, name: 'Vermelho Teste', team: 'red', skin: 'titan', color: 'gold', arena: 'astral' });
   const fighting = await waitForState((snapshot) => snapshot.status === 'fighting', 8_000);
+  if (fighting.arena !== 'ember') throw new Error('A arena do criador da sala não foi preservada');
+  if (!fighting.players.some((player) => player.color === 'emerald')) throw new Error('A cor personalizada não foi sincronizada');
   const blueStartX = fighting.players.find((player) => player.team === 'blue').x;
 
   input(blue, { right: true, dash: true }, 1);

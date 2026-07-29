@@ -4,8 +4,10 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { Server } from 'socket.io';
 import type {
+  ArenaTheme,
   AttackKind,
   FighterAction,
+  FighterColor,
   FighterSkin,
   HitEvent,
   JoinPayload,
@@ -42,6 +44,7 @@ interface FighterState {
   name: string;
   team: Team;
   skin: FighterSkin;
+  color: FighterColor;
   x: number;
   y: number;
   vx: number;
@@ -66,6 +69,7 @@ interface FighterState {
 
 interface RoomState {
   code: string;
+  arena: ArenaTheme;
   players: Map<string, FighterState>;
   status: MatchStatus;
   round: number;
@@ -109,8 +113,9 @@ const emptyInput = (): PlayerInput => ({
   seq: 0,
 });
 
-const createRoom = (code: string): RoomState => ({
+const createRoom = (code: string, arena: ArenaTheme): RoomState => ({
   code,
+  arena,
   players: new Map(),
   status: 'waiting',
   round: 1,
@@ -121,11 +126,12 @@ const createRoom = (code: string): RoomState => ({
   snapshotCounter: 0,
 });
 
-const createFighter = (id: string, name: string, team: Team, skin: FighterSkin): FighterState => ({
+const createFighter = (id: string, name: string, team: Team, skin: FighterSkin, color: FighterColor): FighterState => ({
   id,
   name,
   team,
   skin,
+  color,
   x: team === 'blue' ? 720 : 1480,
   y: WORLD.groundY,
   vx: 0,
@@ -153,6 +159,12 @@ const cleanName = (value: unknown) => String(value ?? '').trim().replace(/\s+/g,
 const cleanSkin = (value: unknown): FighterSkin | undefined => (
   ['vanguard', 'ronin', 'titan', 'wraith'] as FighterSkin[]
 ).find((skin) => skin === value);
+const cleanColor = (value: unknown): FighterColor | undefined => (
+  ['azure', 'crimson', 'emerald', 'violet', 'gold', 'fuchsia', 'cyan', 'lime', 'orange', 'ice', 'coral', 'silver'] as FighterColor[]
+).find((color) => color === value);
+const cleanArena = (value: unknown): ArenaTheme | undefined => (
+  ['riftfall', 'ember', 'neon', 'astral'] as ArenaTheme[]
+).find((arena) => arena === value);
 
 function beginCountdown(room: RoomState, now = Date.now()): void {
   room.status = 'countdown';
@@ -199,6 +211,7 @@ function makeSnapshot(room: RoomState, now: number): MatchSnapshot {
     name: player.name,
     team: player.team,
     skin: player.skin,
+    color: player.color,
     x: Math.round(player.x * 10) / 10,
     y: Math.round(player.y * 10) / 10,
     vx: Math.round(player.vx),
@@ -220,6 +233,7 @@ function makeSnapshot(room: RoomState, now: number): MatchSnapshot {
 
   return {
     roomCode: room.code,
+    arena: room.arena,
     status: room.status,
     players,
     round: room.round,
@@ -462,9 +476,11 @@ io.on('connection', (socket) => {
     const name = cleanName(rawPayload?.name);
     const team = rawPayload?.team;
     const skin = cleanSkin(rawPayload?.skin);
+    const color = cleanColor(rawPayload?.color);
+    const arena = cleanArena(rawPayload?.arena);
 
-    if (roomCode.length < 4 || !name || !skin || (team !== 'blue' && team !== 'red')) {
-      acknowledge({ ok: false, message: 'Confira o nome, o código, o time e o personagem escolhido.' });
+    if (roomCode.length < 4 || !name || !skin || !color || !arena || (team !== 'blue' && team !== 'red')) {
+      acknowledge({ ok: false, message: 'Confira o nome, o código e as opções de personalização.' });
       return;
     }
 
@@ -474,7 +490,7 @@ io.on('connection', (socket) => {
       leaveCurrentRoom(socket.id, previousRoom);
     }
 
-    const room = rooms.get(roomCode) ?? createRoom(roomCode);
+    const room = rooms.get(roomCode) ?? createRoom(roomCode, arena);
     if (room.players.size >= 2) {
       acknowledge({ ok: false, message: 'Esta arena já está completa.' });
       return;
@@ -485,7 +501,7 @@ io.on('connection', (socket) => {
     }
 
     rooms.set(roomCode, room);
-    room.players.set(socket.id, createFighter(socket.id, name, team, skin));
+    room.players.set(socket.id, createFighter(socket.id, name, team, skin, color));
     socket.data.roomCode = roomCode;
     socket.join(roomCode);
     acknowledge({ ok: true, roomCode });

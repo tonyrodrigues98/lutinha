@@ -6,11 +6,13 @@ import '@fontsource/poppins/800.css';
 import Phaser from 'phaser';
 import { FightScene } from './game/FightScene';
 import { NetworkClient } from './game/network';
-import type { FighterSkin, HitEvent, MatchSnapshot, PlayerInput, PlayerSnapshot, Team } from './game/types';
+import type { ArenaTheme, FighterColor, FighterSkin, HitEvent, MatchSnapshot, PlayerInput, PlayerSnapshot, Team } from './game/types';
 
 const network = new NetworkClient();
 let selectedTeam: Team = 'blue';
 let selectedFighter: FighterSkin = 'vanguard';
+let selectedColor: FighterColor = 'azure';
+let selectedArena: ArenaTheme = 'riftfall';
 let game: Phaser.Game | undefined;
 let latestSnapshot: MatchSnapshot | undefined;
 let inputSequence = 0;
@@ -140,6 +142,40 @@ if (savedFighter && ['vanguard', 'ronin', 'titan', 'wraith'].includes(savedFight
   document.querySelector<HTMLButtonElement>(`.fighter-choice[data-fighter="${savedFighter}"]`)?.click();
 }
 
+document.querySelectorAll<HTMLButtonElement>('.color-choice').forEach((button) => {
+  button.addEventListener('click', () => {
+    selectedColor = button.dataset.color as FighterColor;
+    localStorage.setItem('riftfall-color', selectedColor);
+    document.querySelectorAll<HTMLButtonElement>('.color-choice').forEach((choice) => {
+      const selected = choice === button;
+      choice.classList.toggle('selected', selected);
+      choice.setAttribute('aria-pressed', String(selected));
+    });
+  });
+});
+
+const savedColor = localStorage.getItem('riftfall-color') as FighterColor | null;
+if (savedColor && ['azure', 'crimson', 'emerald', 'violet', 'gold', 'fuchsia', 'cyan', 'lime', 'orange', 'ice', 'coral', 'silver'].includes(savedColor)) {
+  document.querySelector<HTMLButtonElement>(`.color-choice[data-color="${savedColor}"]`)?.click();
+}
+
+document.querySelectorAll<HTMLButtonElement>('.arena-choice').forEach((button) => {
+  button.addEventListener('click', () => {
+    selectedArena = button.dataset.arena as ArenaTheme;
+    localStorage.setItem('riftfall-arena', selectedArena);
+    document.querySelectorAll<HTMLButtonElement>('.arena-choice').forEach((choice) => {
+      const selected = choice === button;
+      choice.classList.toggle('selected', selected);
+      choice.setAttribute('aria-pressed', String(selected));
+    });
+  });
+});
+
+const savedArena = localStorage.getItem('riftfall-arena') as ArenaTheme | null;
+if (savedArena && ['riftfall', 'ember', 'neon', 'astral'].includes(savedArena)) {
+  document.querySelector<HTMLButtonElement>(`.arena-choice[data-arena="${savedArena}"]`)?.click();
+}
+
 $('#new-room').addEventListener('click', () => {
   roomInput.value = generateRoomCode();
   lobbyError.textContent = '';
@@ -158,7 +194,14 @@ joinForm.addEventListener('submit', async (event) => {
 
   const name = nameInput.value.trim();
   const roomCode = roomInput.value.trim().toUpperCase();
-  const result = await network.join({ name, roomCode, team: selectedTeam, skin: selectedFighter });
+  const result = await network.join({
+    name,
+    roomCode,
+    team: selectedTeam,
+    skin: selectedFighter,
+    color: selectedColor,
+    arena: selectedArena,
+  });
   if (!result.ok) {
     lobbyError.textContent = result.message || 'Não foi possível entrar na arena.';
     joinButton.disabled = false;

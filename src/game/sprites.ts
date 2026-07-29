@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { FighterAction, FighterSkin, Team } from './types';
+import type { FighterAction, FighterColor, FighterSkin, Team } from './types';
 
 const SIZE = { width: 180, height: 220 };
 
@@ -29,37 +29,43 @@ export const ACTION_SPEED: Record<FighterAction, number> = {
   ko: 78,
 };
 
-const palette = {
-  blue: {
-    core: '#38bdf8',
-    light: '#e0f2fe',
-    dark: '#075985',
-    armor: '#172554',
-    glow: 'rgba(56,189,248,.75)',
-  },
-  red: {
-    core: '#fb4f58',
-    light: '#ffe4e6',
-    dark: '#991b1b',
-    armor: '#450a0a',
-    glow: 'rgba(251,79,88,.75)',
-  },
+const COLOR_PALETTES: Record<FighterColor, {
+  core: string;
+  light: string;
+  dark: string;
+  armor: string;
+  glow: string;
+}> = {
+  azure: { core: '#38bdf8', light: '#e0f2fe', dark: '#075985', armor: '#172554', glow: 'rgba(56,189,248,.75)' },
+  crimson: { core: '#fb4f58', light: '#ffe4e6', dark: '#991b1b', armor: '#450a0a', glow: 'rgba(251,79,88,.75)' },
+  emerald: { core: '#34d399', light: '#d1fae5', dark: '#047857', armor: '#022c22', glow: 'rgba(52,211,153,.75)' },
+  violet: { core: '#8b5cf6', light: '#ede9fe', dark: '#5b21b6', armor: '#2e1065', glow: 'rgba(139,92,246,.78)' },
+  gold: { core: '#fbbf24', light: '#fef3c7', dark: '#b45309', armor: '#451a03', glow: 'rgba(251,191,36,.78)' },
+  fuchsia: { core: '#e879f9', light: '#fae8ff', dark: '#a21caf', armor: '#4a044e', glow: 'rgba(232,121,249,.78)' },
+  cyan: { core: '#22d3ee', light: '#cffafe', dark: '#0e7490', armor: '#083344', glow: 'rgba(34,211,238,.78)' },
+  lime: { core: '#a3e635', light: '#ecfccb', dark: '#4d7c0f', armor: '#1a2e05', glow: 'rgba(163,230,53,.72)' },
+  orange: { core: '#fb923c', light: '#ffedd5', dark: '#c2410c', armor: '#431407', glow: 'rgba(251,146,60,.78)' },
+  ice: { core: '#dbeafe', light: '#ffffff', dark: '#60a5fa', armor: '#172554', glow: 'rgba(219,234,254,.82)' },
+  coral: { core: '#fda4af', light: '#fff1f2', dark: '#e11d48', armor: '#4c0519', glow: 'rgba(253,164,175,.78)' },
+  silver: { core: '#cbd5e1', light: '#f8fafc', dark: '#64748b', armor: '#1e293b', glow: 'rgba(203,213,225,.72)' },
 };
 
-export function fighterTextureKey(team: Team, skin: FighterSkin, action: FighterAction, frame: number): string {
-  return `fighter-${team}-${skin}-${action}-${frame}`;
+export function fighterTextureKey(team: Team, skin: FighterSkin, color: FighterColor, action: FighterAction, frame: number): string {
+  return `fighter-${team}-${skin}-${color}-${action}-${frame}`;
 }
 
-export function ensureFighterTextures(scene: Phaser.Scene, selectedTeam?: Team, selectedSkin?: FighterSkin): void {
-  const targets: Array<[Team, FighterSkin]> = selectedTeam && selectedSkin ? [[selectedTeam, selectedSkin]] : [];
-  targets.forEach(([team, skin]) => {
+export function ensureFighterTextures(scene: Phaser.Scene, selectedTeam?: Team, selectedSkin?: FighterSkin, selectedColor?: FighterColor): void {
+  const targets: Array<[Team, FighterSkin, FighterColor]> = selectedTeam && selectedSkin && selectedColor
+    ? [[selectedTeam, selectedSkin, selectedColor]]
+    : [];
+  targets.forEach(([team, skin, color]) => {
     (Object.keys(ACTION_FRAMES) as FighterAction[]).forEach((action) => {
       for (let frame = 0; frame < ACTION_FRAMES[action]; frame += 1) {
-        const key = fighterTextureKey(team, skin, action, frame);
+        const key = fighterTextureKey(team, skin, color, action, frame);
         if (scene.textures.exists(key)) continue;
         const texture = scene.textures.createCanvas(key, SIZE.width, SIZE.height);
         if (!texture) continue;
-        drawFighter(texture.getContext(), team, skin, action, frame, ACTION_FRAMES[action]);
+        drawFighter(texture.getContext(), team, skin, color, action, frame, ACTION_FRAMES[action]);
         texture.refresh();
       }
     });
@@ -111,11 +117,12 @@ function drawFighter(
   context: CanvasRenderingContext2D,
   team: Team,
   skin: FighterSkin,
+  color: FighterColor,
   action: FighterAction,
   frame: number,
   frameCount: number,
 ): void {
-  const baseColors = palette[team];
+  const baseColors = COLOR_PALETTES[color];
   const armor = {
     vanguard: baseColors.armor,
     ronin: '#18181b',

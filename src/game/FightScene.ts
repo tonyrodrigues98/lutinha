@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { ACTION_FRAMES, ACTION_SPEED, ensureFighterTextures, fighterTextureKey } from './sprites';
 import type { NetworkClient } from './network';
-import type { FighterAction, FighterSkin, HitEvent, MatchSnapshot, PlayerSnapshot, Team } from './types';
+import type { ArenaTheme, FighterAction, FighterColor, FighterSkin, HitEvent, MatchSnapshot, PlayerSnapshot, Team } from './types';
 
 interface FighterView {
   sprite: Phaser.GameObjects.Image;
@@ -9,6 +9,7 @@ interface FighterView {
   name: Phaser.GameObjects.Text;
   team: Team;
   skin: FighterSkin;
+  color: FighterColor;
   action: FighterAction;
   targetX: number;
   targetY: number;
@@ -23,6 +24,8 @@ export class FightScene extends Phaser.Scene {
   private unsubscribe?: () => void;
   private lastHitId = 0;
   private cameraTargetId?: string;
+  private arena?: Phaser.GameObjects.Image;
+  private currentArena: ArenaTheme = 'riftfall';
 
   constructor(network: NetworkClient) {
     super({ key: 'fight' });
@@ -31,6 +34,9 @@ export class FightScene extends Phaser.Scene {
 
   preload(): void {
     this.load.image('riftfall-arena', '/assets/riftfall-arena.webp');
+    this.load.image('ember-arena', '/assets/arena-ember-forge.webp');
+    this.load.image('neon-arena', '/assets/arena-neon-ruins.webp');
+    this.load.image('astral-arena', '/assets/arena-astral-sanctuary.webp');
   }
 
   create(): void {
@@ -38,9 +44,8 @@ export class FightScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, 2200, 900);
     this.cameras.main.setBackgroundColor('#071020');
 
-    const arena = this.add.image(1100, 450, 'riftfall-arena');
-    arena.setDisplaySize(2200, 1238).setDepth(-20);
-    arena.setTint(0xdbeafe);
+    this.arena = this.add.image(1100, 450, 'riftfall-arena');
+    this.arena.setDisplaySize(2200, 1238).setDepth(-20);
 
     const moonGlow = this.add.circle(850, 130, 190, 0xdbeafe, 0.06).setBlendMode(Phaser.BlendModes.ADD).setDepth(-18);
     this.tweens.add({ targets: moonGlow, alpha: { from: 0.03, to: 0.1 }, scale: { from: 0.94, to: 1.08 }, duration: 3_800, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
@@ -85,7 +90,7 @@ export class FightScene extends Phaser.Scene {
 
       const frameCount = ACTION_FRAMES[view.action];
       const frame = Math.floor(time / ACTION_SPEED[view.action]) % frameCount;
-      const key = fighterTextureKey(view.team, view.skin, view.action, frame);
+      const key = fighterTextureKey(view.team, view.skin, view.color, view.action, frame);
       if (view.sprite.texture.key !== key) view.sprite.setTexture(key);
       view.sprite.setFlipX(view.facing === -1);
 
@@ -112,6 +117,18 @@ export class FightScene extends Phaser.Scene {
   }
 
   private consumeSnapshot(snapshot: MatchSnapshot): void {
+    if (snapshot.arena !== this.currentArena) {
+      this.currentArena = snapshot.arena;
+      const texture = {
+        riftfall: 'riftfall-arena',
+        ember: 'ember-arena',
+        neon: 'neon-arena',
+        astral: 'astral-arena',
+      }[snapshot.arena];
+      this.arena?.setTexture(texture).setDisplaySize(2200, 1238);
+      this.cameras.main.flash(260, 255, 255, 255, false);
+    }
+
     const liveIds = new Set(snapshot.players.map((player) => player.id));
     for (const [id, view] of this.fighters) {
       if (!liveIds.has(id)) {
@@ -133,9 +150,9 @@ export class FightScene extends Phaser.Scene {
   private updateFighter(player: PlayerSnapshot): void {
     let view = this.fighters.get(player.id);
     if (!view) {
-      ensureFighterTextures(this, player.team, player.skin);
+      ensureFighterTextures(this, player.team, player.skin, player.color);
       const shadow = this.add.ellipse(player.x, 695, 104, 24, 0x020617, 0.3).setDepth(0);
-      const sprite = this.add.image(player.x, player.y, fighterTextureKey(player.team, player.skin, 'idle', 0))
+      const sprite = this.add.image(player.x, player.y, fighterTextureKey(player.team, player.skin, player.color, 'idle', 0))
         .setOrigin(0.5, 0.94)
         .setDepth(3);
       const name = this.add.text(player.x, player.y - 207, player.name.toUpperCase(), {
@@ -158,6 +175,7 @@ export class FightScene extends Phaser.Scene {
         energyRing,
         team: player.team,
         skin: player.skin,
+        color: player.color,
         action: 'idle',
         targetX: player.x,
         targetY: player.y,

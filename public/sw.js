@@ -1,5 +1,13 @@
-const CACHE = 'riftfall-v4';
-const CORE = ['/', '/manifest.webmanifest', '/icon.svg', '/assets/riftfall-arena.webp'];
+const CACHE = 'riftfall-v5';
+const CORE = [
+  '/',
+  '/manifest.webmanifest',
+  '/icon.svg',
+  '/assets/riftfall-arena.webp',
+  '/assets/arena-ember-forge.webp',
+  '/assets/arena-neon-ruins.webp',
+  '/assets/arena-astral-sanctuary.webp',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE)));

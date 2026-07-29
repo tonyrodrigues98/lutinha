@@ -167,7 +167,9 @@ svg * {
 
 .field-group label,
 .team-picker legend,
-.fighter-picker legend {
+.fighter-picker legend,
+.color-picker legend,
+.arena-picker legend {
   display: block;
   margin-bottom: 9px;
   color: #94a3b8;
@@ -385,6 +387,73 @@ svg * {
   letter-spacing: .06em;
 }
 
+.color-picker,
+.arena-picker { min-width: 0; padding: 0; margin: 0 0 17px; border: 0; }
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 8px;
+}
+
+.color-choice {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, .12);
+  border-radius: 50%;
+  outline: 0;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 3px rgba(2, 6, 23, .45), 0 4px 10px rgba(0, 0, 0, .24);
+  cursor: pointer;
+  transition: transform .16s, border-color .16s, box-shadow .16s;
+}
+
+.color-choice:hover { transform: translateY(-2px) scale(1.06); }
+.color-choice.selected {
+  border-color: #fff;
+  box-shadow: inset 0 0 0 3px rgba(2, 6, 23, .55), 0 0 0 3px color-mix(in srgb, var(--swatch), transparent 55%), 0 0 20px var(--swatch);
+  transform: scale(1.12);
+}
+
+.arena-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.arena-choice {
+  min-width: 0;
+  padding: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, .16);
+  border-radius: 13px;
+  color: #e2e8f0;
+  text-align: left;
+  background: rgba(2, 6, 23, .65);
+  cursor: pointer;
+  transition: transform .18s, border-color .18s, box-shadow .18s;
+}
+
+.arena-choice:hover { transform: translateY(-2px); }
+.arena-choice.selected { border-color: rgba(186, 230, 253, .72); box-shadow: 0 0 0 2px rgba(56, 189, 248, .1), 0 9px 22px rgba(0, 0, 0, .3); }
+.arena-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 8;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  background-position: center;
+  background-size: cover;
+}
+.riftfall-thumb { background-image: url('/assets/riftfall-arena.webp'); }
+.ember-thumb { background-image: url('/assets/arena-ember-forge.webp'); }
+.neon-thumb { background-image: url('/assets/arena-neon-ruins.webp'); }
+.astral-thumb { background-image: url('/assets/arena-astral-sanctuary.webp'); }
+.arena-choice strong { display: block; overflow: hidden; padding: 0 3px; font-size: 8px; letter-spacing: .06em; text-overflow: ellipsis; white-space: nowrap; }
+.arena-choice small { display: block; overflow: hidden; padding: 2px 3px 3px; color: #64748b; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
+
 .lobby-error { min-height: 18px; margin: 0 0 9px; color: #fda4af; font-size: 11px; }
 
 .primary-button {
@@ -565,13 +634,13 @@ svg * {
 .touch-controls { position: absolute; inset: 0; z-index: 7; pointer-events: none; touch-action: none; }
 .move-cluster,
 .action-cluster { position: absolute; bottom: max(18px, env(safe-area-inset-bottom)); align-items: flex-end; pointer-events: auto; touch-action: none; }
-.move-cluster { left: max(18px, env(safe-area-inset-left)); display: flex; gap: 10px; }
+.move-cluster { left: max(18px, env(safe-area-inset-left)); display: flex; gap: 18px; }
 .action-cluster {
   right: max(18px, env(safe-area-inset-right));
   display: grid;
   grid-template-columns: repeat(4, auto);
   grid-template-rows: repeat(2, auto);
-  gap: 7px;
+  gap: 13px;
 }
 
 .control-button {
@@ -680,7 +749,8 @@ svg * {
   .control-button { width: clamp(52px, 9.5vh, 72px); height: clamp(52px, 9.5vh, 72px); opacity: .88; }
   .guard-button { width: clamp(44px, 8vh, 60px); height: clamp(44px, 8vh, 60px); }
   .special-button { width: clamp(58px, 11vh, 80px); height: clamp(58px, 11vh, 80px); }
-  .action-cluster { gap: 5px; }
+  .move-cluster { gap: 13px; }
+  .action-cluster { gap: 10px; }
   .action-cluster .control-button:not(.special-button) { width: clamp(44px, 9vh, 62px); height: clamp(44px, 9vh, 62px); }
   .control-button span { font-size: clamp(7px, 1.55vh, 10px); }
 }
@@ -701,6 +771,15 @@ svg * {
   }
   .fighter-grid::-webkit-scrollbar { display: none; }
   .fighter-choice { flex: 0 0 220px; scroll-snap-align: start; }
+  .arena-grid {
+    display: flex;
+    padding-bottom: 5px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .arena-grid::-webkit-scrollbar { display: none; }
+  .arena-choice { flex: 0 0 145px; scroll-snap-align: start; }
 }
 
 @media (max-width: 520px) {
@@ -708,6 +787,7 @@ svg * {
   .team-choice { min-height: 68px; padding: 9px; }
   .team-emblem { flex-basis: 35px; width: 35px; height: 35px; font-size: 14px; }
   .team-choice small { display: none; }
+  .color-grid { grid-template-columns: repeat(6, 1fr); gap: 11px; }
 }
 
 @media (orientation: portrait) and (max-width: 900px) {
