@@ -9,8 +9,9 @@ Jogo de luta 2D online, mobile-first, para dois jogadores. Cada pessoa entra na 
 - câmera individual seguindo e centralizando o personagem local;
 - controles multitouch: esquerda, direita, salto, defesa, ataque e especial;
 - teclado no desktop: `A/D`, `W` ou `Espaço`, `J`, `K` e `L`;
-- lutadores vetoriais com animações próprias de idle, corrida, salto, ataque, especial, defesa, dano e nocaute;
+- dois lutadores originais ilustrados, Astra Nyx e Kael Forge, com sprites transparentes e estados de entrada, idle, corrida, salto, ataque, especial, defesa, dano, nocaute e vitória;
 - arena original em alta resolução, partículas, impacto, screen shake, som sintético e vibração;
+- 12 cores de energia, quatro arenas, indicador de combo e modo de movimento reduzido;
 - melhor de três, rodadas de 60 segundos e reinício automático;
 - PWA instalável e preparada para tela cheia em modo paisagem;
 - deploy pronto por Docker/Render.
