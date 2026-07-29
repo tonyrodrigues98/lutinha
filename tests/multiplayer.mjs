@@ -102,15 +102,15 @@ try {
   if (!healthResponse.ok || !(await healthResponse.json()).ok) throw new Error('Health check falhou');
   if (!pageResponse.ok || !(await pageResponse.text()).includes('RIFTFALL')) throw new Error('Frontend de produção não foi servido');
 
-  await join(blue, { roomCode, name: 'Azul Teste', team: 'blue' });
+  await join(blue, { roomCode, name: 'Azul Teste', team: 'blue', skin: 'ronin' });
   const duplicateTeam = await new Promise((resolve, reject) => {
-    red.timeout(5_000).emit('joinMatch', { roomCode, name: 'Azul Intruso', team: 'blue' }, (error, result) => {
+    red.timeout(5_000).emit('joinMatch', { roomCode, name: 'Azul Intruso', team: 'blue', skin: 'wraith' }, (error, result) => {
       if (error) reject(error);
       else resolve(result);
     });
   });
   if (duplicateTeam.ok || !duplicateTeam.message.includes('já foi escolhido')) throw new Error('Reserva de time não foi respeitada');
-  await join(red, { roomCode, name: 'Vermelho Teste', team: 'red' });
+  await join(red, { roomCode, name: 'Vermelho Teste', team: 'red', skin: 'titan' });
   const fighting = await waitForState((snapshot) => snapshot.status === 'fighting', 8_000);
   const blueStartX = fighting.players.find((player) => player.team === 'blue').x;
 
