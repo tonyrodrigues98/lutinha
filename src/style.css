@@ -11,13 +11,19 @@
   --panel: rgba(7, 11, 22, 0.78);
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
 
 html,
 body,
 #app {
-  width: 100%;
-  height: 100%;
+  width: 100dvw;
+  height: 100dvh;
   min-height: 100%;
   margin: 0;
   overflow: hidden;
@@ -35,18 +41,21 @@ input {
   touch-action: manipulation;
 }
 
+input {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 button {
   color: inherit;
   -webkit-tap-highlight-color: transparent;
 }
 
-.game-shell,
-#game-canvas,
-#game-canvas canvas,
-.hud-layer,
-.touch-controls,
-.control-button {
-  touch-action: none;
+button > *,
+svg,
+svg * {
+  pointer-events: none;
 }
 
 .hidden { display: none !important; }
@@ -272,6 +281,8 @@ button {
 .game-shell {
   position: fixed;
   inset: 0;
+  width: 100dvw;
+  height: 100dvh;
   overflow: hidden;
   touch-action: none;
   user-select: none;
@@ -418,11 +429,17 @@ button {
 .utility-button svg { width: 17px; fill: none; stroke: #cbd5e1; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .leave-button { right: max(60px, calc(env(safe-area-inset-right) + 42px)); }
 
-.touch-controls { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+.touch-controls { position: absolute; inset: 0; z-index: 7; pointer-events: none; touch-action: none; }
 .move-cluster,
-.action-cluster { position: absolute; bottom: max(18px, env(safe-area-inset-bottom)); display: flex; align-items: flex-end; pointer-events: auto; }
-.move-cluster { left: max(18px, env(safe-area-inset-left)); gap: 10px; }
-.action-cluster { right: max(18px, env(safe-area-inset-right)); gap: 9px; }
+.action-cluster { position: absolute; bottom: max(18px, env(safe-area-inset-bottom)); align-items: flex-end; pointer-events: auto; touch-action: none; }
+.move-cluster { left: max(18px, env(safe-area-inset-left)); display: flex; gap: 10px; }
+.action-cluster {
+  right: max(18px, env(safe-area-inset-right));
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  grid-template-rows: repeat(2, auto);
+  gap: 7px;
+}
 
 .control-button {
   position: relative;
@@ -449,9 +466,33 @@ button {
 .move-button { border-radius: 22px 50% 50% 22px; color: #bae6fd; background: linear-gradient(145deg, rgba(7, 89, 133, .72), rgba(2, 6, 23, .68)); }
 .move-button + .move-button { border-radius: 50% 22px 22px 50%; }
 .guard-button { width: clamp(48px, 6.5vw, 66px); height: clamp(48px, 6.5vw, 66px); color: #fde68a; }
-.jump-button { color: #e2e8f0; }
+.guard-button { grid-column: 1; grid-row: 2; }
+.jump-button { grid-column: 1; grid-row: 1; color: #e2e8f0; }
+.dash-button {
+  grid-column: 2;
+  grid-row: 1;
+  border-color: rgba(125, 211, 252, .42);
+  color: #bae6fd;
+  background: linear-gradient(145deg, rgba(14, 116, 144, .65), rgba(2, 6, 23, .7));
+}
 .attack-button { border-color: rgba(251, 79, 88, .55); color: #fecdd3; background: linear-gradient(145deg, rgba(153, 27, 27, .74), rgba(2, 6, 23, .7)); }
-.special-button { width: clamp(62px, 9vw, 92px); height: clamp(62px, 9vw, 92px); border-color: rgba(148, 163, 184, .2); color: #64748b; }
+.attack-button { grid-column: 2; grid-row: 2; }
+.kick-button {
+  grid-column: 3;
+  grid-row: 2;
+  border-color: rgba(251, 191, 36, .58);
+  color: #fef3c7;
+  background: linear-gradient(145deg, rgba(180, 83, 9, .72), rgba(2, 6, 23, .72));
+}
+.special-button {
+  grid-column: 4;
+  grid-row: 1 / span 2;
+  align-self: end;
+  width: clamp(62px, 9vw, 92px);
+  height: clamp(62px, 9vw, 92px);
+  border-color: rgba(148, 163, 184, .2);
+  color: #64748b;
+}
 .special-button i { position: absolute; inset: 5px; border: 2px dashed rgba(148, 163, 184, .22); border-radius: inherit; }
 .special-button.ready { border-color: #e0f2fe; color: #fff; background: conic-gradient(from 20deg, rgba(56, 189, 248, .75), rgba(2, 6, 23, .75), rgba(251, 79, 88, .7), rgba(56, 189, 248, .75)); box-shadow: 0 0 28px rgba(186, 230, 253, .35), inset 0 0 18px rgba(255, 255, 255, .12); animation: special-ready 1.2s linear infinite; }
 @keyframes special-ready { to { filter: hue-rotate(15deg) brightness(1.12); } }
@@ -506,6 +547,9 @@ button {
   .control-button { width: clamp(52px, 9.5vh, 72px); height: clamp(52px, 9.5vh, 72px); opacity: .88; }
   .guard-button { width: clamp(44px, 8vh, 60px); height: clamp(44px, 8vh, 60px); }
   .special-button { width: clamp(58px, 11vh, 80px); height: clamp(58px, 11vh, 80px); }
+  .action-cluster { gap: 5px; }
+  .action-cluster .control-button:not(.special-button) { width: clamp(44px, 9vh, 62px); height: clamp(44px, 9vh, 62px); }
+  .control-button span { font-size: clamp(7px, 1.55vh, 10px); }
 }
 
 @media (max-width: 880px) {
