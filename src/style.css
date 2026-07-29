@@ -66,9 +66,15 @@ svg * {
   grid-template-columns: minmax(300px, 1fr) minmax(360px, 520px);
   align-items: center;
   gap: clamp(28px, 7vw, 120px);
-  min-height: 100%;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
   padding: max(32px, env(safe-area-inset-top)) max(32px, env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)) max(32px, env(safe-area-inset-left));
-  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   isolation: isolate;
   background: #071020 url('/assets/riftfall-arena.webp') center / cover no-repeat;
 }
