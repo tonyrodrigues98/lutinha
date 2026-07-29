@@ -20,18 +20,33 @@
 }
 
 html,
-body,
-#app {
-  width: 100dvw;
-  height: 100dvh;
+body {
+  width: 100%;
   min-height: 100%;
   margin: 0;
-  overflow: hidden;
-  overscroll-behavior: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   background: var(--ink);
   touch-action: pan-y;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+#app {
+  width: 100%;
+  min-height: 100dvh;
+  overflow: visible;
+}
+
+body.game-active,
+body.game-active #app {
+  width: 100dvw;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 button,
@@ -67,16 +82,24 @@ svg * {
   align-items: center;
   gap: clamp(28px, 7vw, 120px);
   width: 100%;
-  height: 100dvh;
-  min-height: 0;
+  min-height: 100dvh;
   padding: max(32px, env(safe-area-inset-top)) max(32px, env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)) max(32px, env(safe-area-inset-left));
   overflow-x: hidden;
-  overflow-y: scroll;
-  overscroll-behavior-y: contain;
+  overflow-y: visible;
   touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
   isolation: isolate;
   background: #071020 url('/assets/riftfall-arena.webp') center / cover no-repeat;
+}
+
+.lobby-shell[data-arena='riftfall'] { background-image: url('/assets/riftfall-arena.webp'); }
+.lobby-shell[data-arena='ember'] { background-image: url('/assets/arena-ember-forge.webp'); }
+.lobby-shell[data-arena='neon'] { background-image: url('/assets/arena-neon-ruins.webp'); }
+.lobby-shell[data-arena='astral'] { background-image: url('/assets/arena-astral-sanctuary.webp'); }
+.lobby-shell.arena-changing { animation: arena-change .34s ease-out; }
+
+@keyframes arena-change {
+  from { filter: brightness(.62) saturate(.72); }
+  to { filter: brightness(1) saturate(1); }
 }
 
 .lobby-shell::before {

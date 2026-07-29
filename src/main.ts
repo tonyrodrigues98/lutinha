@@ -163,6 +163,10 @@ document.querySelectorAll<HTMLButtonElement>('.arena-choice').forEach((button) =
   button.addEventListener('click', () => {
     selectedArena = button.dataset.arena as ArenaTheme;
     localStorage.setItem('riftfall-arena', selectedArena);
+    lobby.dataset.arena = selectedArena;
+    lobby.classList.remove('arena-changing');
+    void lobby.offsetWidth;
+    lobby.classList.add('arena-changing');
     document.querySelectorAll<HTMLButtonElement>('.arena-choice').forEach((choice) => {
       const selected = choice === button;
       choice.classList.toggle('selected', selected);
@@ -211,6 +215,7 @@ joinForm.addEventListener('submit', async (event) => {
 
   localStorage.setItem('riftfall-player-name', name);
   history.replaceState(null, '', `${location.pathname}?room=${result.roomCode}`);
+  document.body.classList.add('game-active');
   lobby.classList.add('hidden');
   gameShell.classList.remove('hidden');
   startGame();
