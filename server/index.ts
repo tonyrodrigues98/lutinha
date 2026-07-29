@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { Server } from 'socket.io';
 import type {
+  AttackKind,
   FighterAction,
   HitEvent,
   JoinPayload,
@@ -40,7 +41,10 @@ interface FighterState {
   attackUntil: number;
   attackHitAt: number;
   attackResolved: boolean;
-  attackKind: 'attack' | 'special' | null;
+  attackKind: AttackKind | null;
+  dashReadyAt: number;
+  dashUntil: number;
+  dashHeld: boolean;
   hurtUntil: number;
 }
 
@@ -82,6 +86,8 @@ const emptyInput = (): PlayerInput => ({
   right: false,
   jump: false,
   attack: false,
+  kick: false,
+  dash: false,
   block: false,
   special: false,
   seq: 0,
@@ -119,6 +125,9 @@ const createFighter = (id: string, name: string, team: Team): FighterState => ({
   attackHitAt: 0,
   attackResolved: true,
   attackKind: null,
+  dashReadyAt: 0,
+  dashUntil: 0,
+  dashHeld: false,
   hurtUntil: 0,
 });
 
@@ -146,6 +155,8 @@ function resetPositions(room: RoomState, restoreHealth = true): void {
     player.attackKind = null;
     player.attackResolved = true;
     player.attackUntil = 0;
+    player.dashUntil = 0;
+    player.dashHeld = false;
     player.hurtUntil = 0;
     if (restoreHealth) player.health = 100;
   }
@@ -155,6 +166,7 @@ function fighterAction(player: FighterState, now: number): FighterAction {
   if (player.health <= 0) return 'ko';
   if (player.hurtUntil > now) return 'hurt';
   if (player.attackUntil > now && player.attackKind) return player.attackKind;
+  if (player.dashUntil > now) return 'dash';
   if (player.input.block && player.grounded) return 'block';
   if (!player.grounded) return 'jump';
   if (Math.abs(player.vx) > 35) return 'run';
@@ -203,16 +215,21 @@ function emitRoom(room: RoomState, now = Date.now()): void {
   io.to(room.code).emit('snapshot', makeSnapshot(room, now));
 }
 
-function startAttack(player: FighterState, special: boolean, now: number): void {
+function startAttack(player: FighterState, kind: AttackKind, now: number): void {
   if (player.health <= 0 || player.hurtUntil > now || player.attackUntil > now || player.input.block) return;
-  if (special && player.energy < 100) return;
+  if (kind === 'special' && player.energy < 100) return;
 
-  if (special) {
+  if (kind === 'special') {
     player.energy = 0;
     player.attackKind = 'special';
     player.attackHitAt = now + 260;
     player.attackUntil = now + 720;
     player.attackReadyAt = now + 980;
+  } else if (kind === 'kick') {
+    player.attackKind = 'kick';
+    player.attackHitAt = now + 175;
+    player.attackUntil = now + 480;
+    player.attackReadyAt = now + 610;
   } else {
     player.attackKind = 'attack';
     player.attackHitAt = now + 120;
@@ -229,25 +246,28 @@ function resolveAttack(room: RoomState, attacker: FighterState, now: number): vo
 
   const target = [...room.players.values()].find((candidate) => candidate.id !== attacker.id);
   if (!target || target.health <= 0) return;
-  const special = attacker.attackKind === 'special';
+  const kind = attacker.attackKind;
+  const special = kind === 'special';
+  const kick = kind === 'kick';
   const distance = Math.abs(target.x - attacker.x);
   const verticalDistance = Math.abs(target.y - attacker.y);
   const inFront = (target.x - attacker.x) * attacker.facing > -25;
-  if (distance > (special ? 245 : 158) || verticalDistance > 145 || !inFront) return;
+  const range = special ? 245 : kick ? 188 : 158;
+  if (distance > range || verticalDistance > (kick ? 165 : 145) || !inFront) return;
 
   const targetFacingAttack = (attacker.x - target.x) * target.facing > 0;
   const blocked = target.input.block && target.grounded && targetFacingAttack;
-  const damage = blocked ? (special ? 5 : 2) : (special ? 20 : 9);
-  const knockback = blocked ? (special ? 160 : 70) : (special ? 520 : 280);
+  const damage = blocked ? (special ? 5 : kick ? 3 : 2) : (special ? 20 : kick ? 13 : 9);
+  const knockback = blocked ? (special ? 160 : kick ? 105 : 70) : (special ? 520 : kick ? 380 : 280);
 
   target.health = Math.max(0, target.health - damage);
   target.vx = attacker.facing * knockback;
   if (!blocked) {
-    target.vy = special ? -330 : -130;
+    target.vy = special ? -330 : kick ? -220 : -130;
     target.grounded = false;
-    target.hurtUntil = now + (special ? 430 : 260);
+    target.hurtUntil = now + (special ? 430 : kick ? 335 : 260);
   }
-  attacker.energy = Math.min(100, attacker.energy + (special ? 0 : 20));
+  attacker.energy = Math.min(100, attacker.energy + (special ? 0 : kick ? 25 : 20));
   target.energy = Math.min(100, target.energy + (blocked ? 5 : 11));
 
   room.lastHit = {
@@ -256,6 +276,7 @@ function resolveAttack(room: RoomState, attacker: FighterState, now: number): vo
     targetId: target.id,
     x: (attacker.x + target.x) / 2,
     y: Math.min(attacker.y, target.y) - 105,
+    kind,
     special,
     blocked,
   };
@@ -266,12 +287,31 @@ function simulateFighter(player: FighterState, opponent: FighterState | undefine
     player.facing = opponent.x >= player.x ? 1 : -1;
   }
 
-  const canAct = player.health > 0 && player.hurtUntil <= now && player.attackUntil <= now;
+  const canDash = player.health > 0
+    && player.grounded
+    && player.hurtUntil <= now
+    && player.attackUntil <= now
+    && now >= player.dashReadyAt
+    && !player.input.block;
+  if (canDash && player.input.dash && !player.dashHeld) {
+    player.dashUntil = now + 190;
+    player.dashReadyAt = now + 850;
+    const dashDirection = Number(player.input.right) - Number(player.input.left);
+    player.vx = (dashDirection || player.facing) * 840;
+  }
+  player.dashHeld = player.input.dash;
+
+  const dashing = player.dashUntil > now;
+  const canAct = player.health > 0 && player.hurtUntil <= now && player.attackUntil <= now && !dashing;
   const direction = canAct && !player.input.block ? Number(player.input.right) - Number(player.input.left) : 0;
-  const desiredVelocity = direction * (player.grounded ? 410 : 335);
-  const responsiveness = player.grounded ? 0.24 : 0.09;
-  player.vx += (desiredVelocity - player.vx) * responsiveness;
-  if (direction === 0 && player.grounded) player.vx *= 0.72;
+  if (dashing) {
+    player.vx *= 0.985;
+  } else {
+    const desiredVelocity = direction * (player.grounded ? 410 : 335);
+    const responsiveness = player.grounded ? 0.24 : 0.09;
+    player.vx += (desiredVelocity - player.vx) * responsiveness;
+    if (direction === 0 && player.grounded) player.vx *= 0.72;
+  }
 
   if (canAct && player.input.jump && !player.jumpHeld && player.grounded && !player.input.block) {
     player.vy = -760;
@@ -280,8 +320,9 @@ function simulateFighter(player: FighterState, opponent: FighterState | undefine
   player.jumpHeld = player.input.jump;
 
   if (canAct && now >= player.attackReadyAt) {
-    if (player.input.special) startAttack(player, true, now);
-    else if (player.input.attack) startAttack(player, false, now);
+    if (player.input.special) startAttack(player, 'special', now);
+    else if (player.input.kick) startAttack(player, 'kick', now);
+    else if (player.input.attack) startAttack(player, 'attack', now);
   }
 
   resolveAttack(room, player, now);
@@ -436,6 +477,8 @@ io.on('connection', (socket) => {
       right: Boolean(input.right),
       jump: Boolean(input.jump),
       attack: Boolean(input.attack),
+      kick: Boolean(input.kick),
+      dash: Boolean(input.dash),
       block: Boolean(input.block),
       special: Boolean(input.special),
       seq: Number.isFinite(input.seq) ? input.seq : player.input.seq,
