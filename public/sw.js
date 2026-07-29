@@ -1,4 +1,4 @@
-const CACHE = 'riftfall-v2';
+const CACHE = 'riftfall-v3';
 const CORE = ['/', '/manifest.webmanifest', '/icon.svg', '/assets/riftfall-arena.webp'];
 
 self.addEventListener('install', (event) => {
