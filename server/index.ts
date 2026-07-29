@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import type {
   AttackKind,
   FighterAction,
+  FighterSkin,
   HitEvent,
   JoinPayload,
   JoinResult,
@@ -22,10 +23,25 @@ const ROUND_DURATION = 60_000;
 const TICK_RATE = 60;
 const SNAPSHOT_RATE = 20;
 
+const FIGHTER_STATS: Record<FighterSkin, {
+  speed: number;
+  jump: number;
+  dash: number;
+  damage: number;
+  defense: number;
+  energy: number;
+}> = {
+  vanguard: { speed: 1, jump: 1, dash: 1, damage: 1, defense: 1, energy: 1 },
+  ronin: { speed: 1.13, jump: 1.09, dash: 1.05, damage: 0.93, defense: 1.06, energy: 1.05 },
+  titan: { speed: 0.86, jump: 0.9, dash: 0.88, damage: 1.18, defense: 0.88, energy: 0.9 },
+  wraith: { speed: 1.06, jump: 1.03, dash: 1.2, damage: 0.97, defense: 1.03, energy: 1.2 },
+};
+
 interface FighterState {
   id: string;
   name: string;
   team: Team;
+  skin: FighterSkin;
   x: number;
   y: number;
   vx: number;
@@ -105,10 +121,11 @@ const createRoom = (code: string): RoomState => ({
   snapshotCounter: 0,
 });
 
-const createFighter = (id: string, name: string, team: Team): FighterState => ({
+const createFighter = (id: string, name: string, team: Team, skin: FighterSkin): FighterState => ({
   id,
   name,
   team,
+  skin,
   x: team === 'blue' ? 720 : 1480,
   y: WORLD.groundY,
   vx: 0,
@@ -133,6 +150,9 @@ const createFighter = (id: string, name: string, team: Team): FighterState => ({
 
 const cleanCode = (value: unknown) => String(value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
 const cleanName = (value: unknown) => String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 14);
+const cleanSkin = (value: unknown): FighterSkin | undefined => (
+  ['vanguard', 'ronin', 'titan', 'wraith'] as FighterSkin[]
+).find((skin) => skin === value);
 
 function beginCountdown(room: RoomState, now = Date.now()): void {
   room.status = 'countdown';
@@ -178,6 +198,7 @@ function makeSnapshot(room: RoomState, now: number): MatchSnapshot {
     id: player.id,
     name: player.name,
     team: player.team,
+    skin: player.skin,
     x: Math.round(player.x * 10) / 10,
     y: Math.round(player.y * 10) / 10,
     vx: Math.round(player.vx),
@@ -257,7 +278,10 @@ function resolveAttack(room: RoomState, attacker: FighterState, now: number): vo
 
   const targetFacingAttack = (attacker.x - target.x) * target.facing > 0;
   const blocked = target.input.block && target.grounded && targetFacingAttack;
-  const damage = blocked ? (special ? 5 : kick ? 3 : 2) : (special ? 20 : kick ? 13 : 9);
+  const attackerStats = FIGHTER_STATS[attacker.skin];
+  const targetStats = FIGHTER_STATS[target.skin];
+  const baseDamage = blocked ? (special ? 5 : kick ? 3 : 2) : (special ? 20 : kick ? 13 : 9);
+  const damage = Math.max(1, Math.round(baseDamage * attackerStats.damage * targetStats.defense));
   const knockback = blocked ? (special ? 160 : kick ? 105 : 70) : (special ? 520 : kick ? 380 : 280);
 
   target.health = Math.max(0, target.health - damage);
@@ -267,7 +291,7 @@ function resolveAttack(room: RoomState, attacker: FighterState, now: number): vo
     target.grounded = false;
     target.hurtUntil = now + (special ? 430 : kick ? 335 : 260);
   }
-  attacker.energy = Math.min(100, attacker.energy + (special ? 0 : kick ? 25 : 20));
+  attacker.energy = Math.min(100, attacker.energy + (special ? 0 : kick ? 25 : 20) * attackerStats.energy);
   target.energy = Math.min(100, target.energy + (blocked ? 5 : 11));
 
   room.lastHit = {
@@ -283,6 +307,7 @@ function resolveAttack(room: RoomState, attacker: FighterState, now: number): vo
 }
 
 function simulateFighter(player: FighterState, opponent: FighterState | undefined, room: RoomState, dt: number, now: number): void {
+  const stats = FIGHTER_STATS[player.skin];
   if (opponent && Math.abs(opponent.y - player.y) < 120) {
     player.facing = opponent.x >= player.x ? 1 : -1;
   }
@@ -297,7 +322,7 @@ function simulateFighter(player: FighterState, opponent: FighterState | undefine
     player.dashUntil = now + 190;
     player.dashReadyAt = now + 850;
     const dashDirection = Number(player.input.right) - Number(player.input.left);
-    player.vx = (dashDirection || player.facing) * 840;
+    player.vx = (dashDirection || player.facing) * 840 * stats.dash;
   }
   player.dashHeld = player.input.dash;
 
@@ -307,14 +332,14 @@ function simulateFighter(player: FighterState, opponent: FighterState | undefine
   if (dashing) {
     player.vx *= 0.985;
   } else {
-    const desiredVelocity = direction * (player.grounded ? 410 : 335);
+    const desiredVelocity = direction * (player.grounded ? 410 : 335) * stats.speed;
     const responsiveness = player.grounded ? 0.24 : 0.09;
     player.vx += (desiredVelocity - player.vx) * responsiveness;
     if (direction === 0 && player.grounded) player.vx *= 0.72;
   }
 
   if (canAct && player.input.jump && !player.jumpHeld && player.grounded && !player.input.block) {
-    player.vy = -760;
+    player.vy = -760 * stats.jump;
     player.grounded = false;
   }
   player.jumpHeld = player.input.jump;
@@ -436,9 +461,10 @@ io.on('connection', (socket) => {
     const roomCode = cleanCode(rawPayload?.roomCode);
     const name = cleanName(rawPayload?.name);
     const team = rawPayload?.team;
+    const skin = cleanSkin(rawPayload?.skin);
 
-    if (roomCode.length < 4 || !name || (team !== 'blue' && team !== 'red')) {
-      acknowledge({ ok: false, message: 'Confira o nome, o código e o time escolhido.' });
+    if (roomCode.length < 4 || !name || !skin || (team !== 'blue' && team !== 'red')) {
+      acknowledge({ ok: false, message: 'Confira o nome, o código, o time e o personagem escolhido.' });
       return;
     }
 
@@ -459,7 +485,7 @@ io.on('connection', (socket) => {
     }
 
     rooms.set(roomCode, room);
-    room.players.set(socket.id, createFighter(socket.id, name, team));
+    room.players.set(socket.id, createFighter(socket.id, name, team, skin));
     socket.data.roomCode = roomCode;
     socket.join(roomCode);
     acknowledge({ ok: true, roomCode });
