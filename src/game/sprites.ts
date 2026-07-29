@@ -1,32 +1,32 @@
 import Phaser from 'phaser';
-import type { FighterAction, Team } from './types';
+import type { FighterAction, FighterSkin, Team } from './types';
 
-const SIZE = { width: 150, height: 210 };
+const SIZE = { width: 180, height: 220 };
 
 export const ACTION_FRAMES: Record<FighterAction, number> = {
-  idle: 6,
-  run: 8,
-  dash: 4,
-  jump: 3,
-  attack: 6,
-  kick: 7,
-  special: 8,
-  block: 3,
-  hurt: 3,
-  ko: 6,
+  idle: 8,
+  run: 10,
+  dash: 6,
+  jump: 5,
+  attack: 8,
+  kick: 9,
+  special: 12,
+  block: 4,
+  hurt: 4,
+  ko: 8,
 };
 
 export const ACTION_SPEED: Record<FighterAction, number> = {
-  idle: 115,
-  run: 72,
-  dash: 45,
-  jump: 120,
-  attack: 55,
-  kick: 62,
-  special: 78,
-  block: 115,
-  hurt: 80,
-  ko: 105,
+  idle: 90,
+  run: 58,
+  dash: 34,
+  jump: 84,
+  attack: 44,
+  kick: 48,
+  special: 54,
+  block: 88,
+  hurt: 60,
+  ko: 78,
 };
 
 const palette = {
@@ -46,19 +46,20 @@ const palette = {
   },
 };
 
-export function fighterTextureKey(team: Team, action: FighterAction, frame: number): string {
-  return `fighter-${team}-${action}-${frame}`;
+export function fighterTextureKey(team: Team, skin: FighterSkin, action: FighterAction, frame: number): string {
+  return `fighter-${team}-${skin}-${action}-${frame}`;
 }
 
-export function ensureFighterTextures(scene: Phaser.Scene): void {
-  (['blue', 'red'] as Team[]).forEach((team) => {
+export function ensureFighterTextures(scene: Phaser.Scene, selectedTeam?: Team, selectedSkin?: FighterSkin): void {
+  const targets: Array<[Team, FighterSkin]> = selectedTeam && selectedSkin ? [[selectedTeam, selectedSkin]] : [];
+  targets.forEach(([team, skin]) => {
     (Object.keys(ACTION_FRAMES) as FighterAction[]).forEach((action) => {
       for (let frame = 0; frame < ACTION_FRAMES[action]; frame += 1) {
-        const key = fighterTextureKey(team, action, frame);
+        const key = fighterTextureKey(team, skin, action, frame);
         if (scene.textures.exists(key)) continue;
         const texture = scene.textures.createCanvas(key, SIZE.width, SIZE.height);
         if (!texture) continue;
-        drawFighter(texture.getContext(), team, action, frame, ACTION_FRAMES[action]);
+        drawFighter(texture.getContext(), team, skin, action, frame, ACTION_FRAMES[action]);
         texture.refresh();
       }
     });
@@ -109,15 +110,29 @@ function limb(
 function drawFighter(
   context: CanvasRenderingContext2D,
   team: Team,
+  skin: FighterSkin,
   action: FighterAction,
   frame: number,
   frameCount: number,
 ): void {
-  const colors = palette[team];
+  const baseColors = palette[team];
+  const armor = {
+    vanguard: baseColors.armor,
+    ronin: '#18181b',
+    titan: '#292524',
+    wraith: '#2e1065',
+  }[skin];
+  const accent = {
+    vanguard: baseColors.light,
+    ronin: '#fbbf24',
+    titan: '#f59e0b',
+    wraith: '#c4b5fd',
+  }[skin];
+  const colors = { ...baseColors, armor };
   const phase = (frame / frameCount) * Math.PI * 2;
   const idle = Math.sin(phase);
   const run = Math.sin(phase);
-  let bodyX = 75;
+  let bodyX = SIZE.width / 2;
   let bodyY = 105 + idle * (action === 'idle' ? 3 : 0);
   let rotation = 0;
   let crouch = 0;
@@ -140,6 +155,23 @@ function drawFighter(
   context.globalAlpha = fade;
   context.translate(bodyX, bodyY + crouch);
   context.rotate(rotation);
+
+  if (action === 'dash') {
+    context.save();
+    context.globalAlpha = 0.18 + frame * 0.035;
+    context.strokeStyle = accent;
+    context.shadowColor = baseColors.core;
+    context.shadowBlur = 16;
+    context.lineCap = 'round';
+    for (let trail = 0; trail < 3; trail += 1) {
+      context.lineWidth = 8 - trail * 2;
+      context.beginPath();
+      context.moveTo(-35 - trail * 12, -35 + trail * 30);
+      context.lineTo(-82 - frame * 3, -25 + trail * 31);
+      context.stroke();
+    }
+    context.restore();
+  }
 
   const runSwing = action === 'run' ? run * 21 : 0;
   const jumpTuck = action === 'jump' ? 16 : 0;
@@ -183,9 +215,41 @@ function drawFighter(
     frontFoot = [49, 70];
   }
 
-  limb(context, [[-13, 40], backKnee, backFoot], 15, colors.dark, colors.core);
-  limb(context, [[13, 40], frontKnee, frontFoot], 16, colors.core, colors.light);
-  limb(context, [[-22, -10], [-31, 10], backHand], 13, colors.dark, colors.core);
+  if (skin === 'wraith') {
+    context.save();
+    context.globalAlpha = 0.72;
+    context.fillStyle = '#1e1b4b';
+    context.strokeStyle = baseColors.core;
+    context.lineWidth = 3;
+    context.beginPath();
+    context.moveTo(-25, -25);
+    context.quadraticCurveTo(-45, 42, -34 - idle * 5, 93);
+    context.lineTo(0, 72);
+    context.lineTo(38 + idle * 4, 94);
+    context.quadraticCurveTo(45, 35, 24, -25);
+    context.closePath();
+    context.fill();
+    context.stroke();
+    context.restore();
+  } else if (skin === 'ronin') {
+    context.save();
+    context.strokeStyle = '#09090b';
+    context.lineWidth = 11;
+    context.lineCap = 'round';
+    context.beginPath();
+    context.moveTo(-34, -42);
+    context.lineTo(42, 68);
+    context.stroke();
+    context.strokeStyle = accent;
+    context.lineWidth = 3;
+    context.stroke();
+    context.restore();
+  }
+
+  const build = skin === 'titan' ? 1.22 : skin === 'ronin' || skin === 'wraith' ? 0.88 : 1;
+  limb(context, [[-13, 40], backKnee, backFoot], 15 * build, colors.dark, colors.core);
+  limb(context, [[13, 40], frontKnee, frontFoot], 16 * build, colors.core, colors.light);
+  limb(context, [[-22, -10], [-31, 10], backHand], 13 * build, colors.dark, colors.core);
 
   context.save();
   context.shadowColor = colors.glow;
@@ -193,29 +257,81 @@ function drawFighter(
   context.fillStyle = colors.armor;
   context.strokeStyle = '#030712';
   context.lineWidth = 7;
+  const torsoWidth = skin === 'titan' ? 38 : skin === 'ronin' ? 24 : skin === 'wraith' ? 26 : 27;
+  const shoulderWidth = skin === 'titan' ? 43 : skin === 'ronin' ? 31 : 33;
+  const torsoBottom = skin === 'titan' ? 57 : skin === 'ronin' ? 45 : 50;
   context.beginPath();
-  context.moveTo(-27, -27);
-  context.lineTo(-33, 30);
-  context.lineTo(0, 50);
-  context.lineTo(33, 30);
-  context.lineTo(27, -27);
+  context.moveTo(-torsoWidth, -27);
+  context.lineTo(-shoulderWidth, 30);
+  context.lineTo(0, torsoBottom);
+  context.lineTo(shoulderWidth, 30);
+  context.lineTo(torsoWidth, -27);
   context.lineTo(0, -39);
   context.closePath();
   context.fill();
   context.stroke();
   context.restore();
 
+  context.strokeStyle = accent;
   context.fillStyle = colors.core;
-  context.beginPath();
-  context.moveTo(-18, -18);
-  context.lineTo(0, 29);
-  context.lineTo(18, -18);
-  context.lineTo(0, -7);
-  context.closePath();
-  context.fill();
-  context.strokeStyle = colors.light;
   context.lineWidth = 3;
-  context.stroke();
+  if (skin === 'ronin') {
+    context.beginPath();
+    context.moveTo(-25, -16);
+    context.lineTo(27, 18);
+    context.lineTo(18, 29);
+    context.lineTo(-29, -3);
+    context.closePath();
+    context.fill();
+    context.stroke();
+    context.fillStyle = accent;
+    context.fillRect(-29, 27, 58, 8);
+  } else if (skin === 'titan') {
+    context.beginPath();
+    context.arc(0, 2, 18, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.fillStyle = '#020617';
+    context.beginPath();
+    context.arc(0, 2, 8 + idle, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = baseColors.light;
+    context.stroke();
+  } else if (skin === 'wraith') {
+    context.beginPath();
+    context.moveTo(0, -22);
+    context.quadraticCurveTo(25, 1, 0, 31);
+    context.quadraticCurveTo(-25, 1, 0, -22);
+    context.fill();
+    context.stroke();
+    context.fillStyle = accent;
+    context.beginPath();
+    context.arc(1, 3, 5 + Math.abs(idle) * 2, 0, Math.PI * 2);
+    context.fill();
+  } else {
+    context.beginPath();
+    context.moveTo(-18, -18);
+    context.lineTo(0, 29);
+    context.lineTo(18, -18);
+    context.lineTo(0, -7);
+    context.closePath();
+    context.fill();
+    context.stroke();
+  }
+
+  if (skin === 'titan') {
+    for (const side of [-1, 1]) {
+      context.save();
+      context.fillStyle = '#44403c';
+      context.strokeStyle = accent;
+      context.lineWidth = 3;
+      context.beginPath();
+      context.arc(side * 34, -20, 17, 0, Math.PI * 2);
+      context.fill();
+      context.stroke();
+      context.restore();
+    }
+  }
 
   const scarfWave = idle * 7 + (action === 'run' ? -14 : action === 'dash' ? -25 : 0);
   context.fillStyle = colors.core;
@@ -226,7 +342,7 @@ function drawFighter(
   context.closePath();
   context.fill();
 
-  limb(context, [[22, -10], [33, 8], frontHand], 15, colors.core, colors.light);
+  limb(context, [[22, -10], [33, 8], frontHand], 15 * build, colors.core, colors.light);
 
   const headY = -55;
   context.save();
@@ -257,6 +373,47 @@ function drawFighter(
   context.shadowColor = colors.core;
   context.shadowBlur = 10;
   context.fillRect(3, headY - 5, 15, 4);
+
+  if (skin === 'ronin') {
+    context.shadowBlur = 6;
+    context.fillStyle = accent;
+    context.beginPath();
+    context.moveTo(-6, headY - 27);
+    context.lineTo(2, headY - 49);
+    context.lineTo(9, headY - 25);
+    context.closePath();
+    context.fill();
+    context.fillStyle = colors.core;
+    context.fillRect(-27, headY + 9, 54, 7);
+  } else if (skin === 'titan') {
+    context.fillStyle = accent;
+    context.beginPath();
+    context.moveTo(-20, headY - 20);
+    context.lineTo(-42, headY - 38);
+    context.lineTo(-27, headY - 5);
+    context.moveTo(20, headY - 20);
+    context.lineTo(42, headY - 38);
+    context.lineTo(27, headY - 5);
+    context.fill();
+    context.fillStyle = '#44403c';
+    context.fillRect(-23, headY + 13, 46, 10);
+  } else if (skin === 'wraith') {
+    context.globalAlpha = 0.9;
+    context.fillStyle = '#1e1b4b';
+    context.strokeStyle = accent;
+    context.lineWidth = 4;
+    context.beginPath();
+    context.moveTo(0, headY - 39);
+    context.quadraticCurveTo(38, headY - 18, 29, headY + 26);
+    context.lineTo(0, headY + 17);
+    context.lineTo(-29, headY + 26);
+    context.quadraticCurveTo(-38, headY - 18, 0, headY - 39);
+    context.fill();
+    context.stroke();
+    context.fillStyle = baseColors.light;
+    context.shadowBlur = 18;
+    context.fillRect(-14, headY - 4, 28, 3);
+  }
   context.restore();
 
   if (action === 'attack' || action === 'kick' || action === 'special') {
