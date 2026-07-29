@@ -15,9 +15,15 @@ let latestSnapshot: MatchSnapshot | undefined;
 let inputSequence = 0;
 let lastAudioHit = 0;
 
+const isEditableTarget = (target: EventTarget | null): boolean => (
+  target instanceof HTMLInputElement
+  || target instanceof HTMLTextAreaElement
+  || (target instanceof HTMLElement && target.isContentEditable)
+);
+
 // Safari on iPhone may still zoom despite the viewport directive.
-// Block pinch, double-tap and browser gesture events throughout the game.
-const preventBrowserZoom = (): void => {
+// Block pinch, double-tap, selection and native gestures outside form fields.
+const lockGameInterface = (): void => {
   const cancel = (event: Event) => event.preventDefault();
   document.addEventListener('gesturestart', cancel, { passive: false });
   document.addEventListener('gesturechange', cancel, { passive: false });
@@ -26,6 +32,13 @@ const preventBrowserZoom = (): void => {
   document.addEventListener('touchmove', (event) => {
     if (event.touches.length > 1) event.preventDefault();
   }, { passive: false });
+  document.addEventListener('selectstart', (event) => {
+    if (!isEditableTarget(event.target)) event.preventDefault();
+  });
+  document.addEventListener('dragstart', cancel);
+  document.addEventListener('contextmenu', (event) => {
+    if (!isEditableTarget(event.target)) event.preventDefault();
+  });
 
   let lastTouchEnd = 0;
   document.addEventListener('touchend', (event) => {
@@ -35,13 +48,15 @@ const preventBrowserZoom = (): void => {
   }, { passive: false });
 };
 
-preventBrowserZoom();
+lockGameInterface();
 
 const input: PlayerInput = {
   left: false,
   right: false,
   jump: false,
   attack: false,
+  kick: false,
+  dash: false,
   block: false,
   special: false,
   seq: 0,
@@ -66,6 +81,24 @@ const bannerTitle = $('#banner-title');
 const shareButton = $('#share-match') as HTMLButtonElement;
 const connectionState = $('#connection-state');
 const specialButton = $('#special-button') as HTMLButtonElement;
+
+async function enterImmersiveMode(): Promise<void> {
+  try {
+    if (!document.fullscreenElement && document.fullscreenEnabled) {
+      await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+    }
+  } catch {
+    // iPhone Safari only exposes true fullscreen when installed as a PWA.
+  }
+  try {
+    const orientation = screen.orientation as ScreenOrientation & {
+      lock?: (mode: string) => Promise<void>;
+    };
+    await orientation.lock?.('landscape');
+  } catch {
+    // Orientation locking is optional and browser-dependent.
+  }
+}
 
 const roomAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function generateRoomCode(): string {
@@ -100,6 +133,7 @@ roomInput.addEventListener('input', () => {
 
 joinForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  void enterImmersiveMode();
   lobbyError.textContent = '';
   joinButton.disabled = true;
   joinButton.querySelector('span')!.textContent = 'CONECTANDO...';
@@ -135,7 +169,7 @@ function startGame(): void {
     render: { pixelArt: false, roundPixels: false, powerPreference: 'high-performance' },
     scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: [new FightScene(network)],
-    input: { activePointers: 6 },
+    input: { activePointers: 10 },
   });
 }
 
@@ -172,7 +206,8 @@ const keyboardMap: Record<string, keyof Omit<PlayerInput, 'seq'>> = {
   ArrowLeft: 'left', KeyA: 'left',
   ArrowRight: 'right', KeyD: 'right',
   ArrowUp: 'jump', KeyW: 'jump', Space: 'jump',
-  KeyJ: 'attack', KeyK: 'block', KeyL: 'special',
+  KeyJ: 'attack', KeyI: 'kick', ShiftLeft: 'dash', ShiftRight: 'dash',
+  KeyK: 'block', KeyL: 'special',
 };
 window.addEventListener('keydown', (event) => {
   const action = keyboardMap[event.code];
@@ -280,12 +315,8 @@ shareButton.addEventListener('click', async () => {
 });
 
 $('#fullscreen-button').addEventListener('click', async () => {
-  try {
-    if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
-    else await document.exitFullscreen();
-  } catch {
-    // Fullscreen is optional on browsers that deny it.
-  }
+  if (document.fullscreenElement) await document.exitFullscreen().catch(() => undefined);
+  else await enterImmersiveMode();
 });
 
 $('#leave-button').addEventListener('click', () => {
@@ -300,9 +331,9 @@ function playImpactSound(hit: HitEvent): void {
     const now = audioContext.currentTime;
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
-    oscillator.type = hit.special ? 'sawtooth' : 'square';
-    oscillator.frequency.setValueAtTime(hit.blocked ? 390 : hit.special ? 145 : 95, now);
-    oscillator.frequency.exponentialRampToValueAtTime(hit.blocked ? 210 : 42, now + (hit.special ? 0.28 : 0.12));
+    oscillator.type = hit.special ? 'sawtooth' : hit.kind === 'kick' ? 'triangle' : 'square';
+    oscillator.frequency.setValueAtTime(hit.blocked ? 390 : hit.special ? 145 : hit.kind === 'kick' ? 72 : 95, now);
+    oscillator.frequency.exponentialRampToValueAtTime(hit.blocked ? 210 : 42, now + (hit.special ? 0.28 : hit.kind === 'kick' ? 0.18 : 0.12));
     gain.gain.setValueAtTime(hit.blocked ? 0.045 : 0.07, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + (hit.special ? 0.3 : 0.14));
     oscillator.connect(gain).connect(audioContext.destination);
