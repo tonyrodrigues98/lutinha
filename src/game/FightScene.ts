@@ -150,18 +150,19 @@ export class FightScene extends Phaser.Scene {
   }
 
   private playHitEffect(hit: HitEvent): void {
-    const color = hit.special ? 0xf8fafc : hit.blocked ? 0xfbbf24 : 0xffffff;
+    const color = hit.special ? 0xf8fafc : hit.blocked ? 0xfbbf24 : hit.kind === 'kick' ? 0xfde68a : 0xffffff;
+    const isKick = hit.kind === 'kick';
     const burst = this.add.particles(hit.x, hit.y, 'particle-white', {
-      speed: { min: hit.special ? 160 : 90, max: hit.special ? 420 : 250 },
+      speed: { min: hit.special ? 160 : isKick ? 120 : 90, max: hit.special ? 420 : isKick ? 320 : 250 },
       angle: { min: 0, max: 360 },
       lifespan: { min: 180, max: 430 },
       scale: { start: hit.special ? 1.1 : 0.7, end: 0 },
       alpha: { start: 1, end: 0 },
       tint: color,
-      quantity: hit.special ? 28 : 14,
+      quantity: hit.special ? 28 : isKick ? 20 : 14,
       emitting: false,
     }).setDepth(12);
-    burst.explode(hit.special ? 28 : 14);
+    burst.explode(hit.special ? 28 : isKick ? 20 : 14);
 
     const ring = this.add.circle(hit.x, hit.y, 14).setStrokeStyle(hit.special ? 8 : 5, color, 0.9).setBlendMode(Phaser.BlendModes.ADD).setDepth(11);
     this.tweens.add({
@@ -175,7 +176,7 @@ export class FightScene extends Phaser.Scene {
     this.time.delayedCall(500, () => burst.destroy());
 
     if (hit.targetId === this.network.id) {
-      this.cameras.main.shake(hit.special ? 210 : 95, hit.special ? 0.012 : 0.006);
+      this.cameras.main.shake(hit.special ? 210 : isKick ? 135 : 95, hit.special ? 0.012 : isKick ? 0.008 : 0.006);
     }
   }
 
