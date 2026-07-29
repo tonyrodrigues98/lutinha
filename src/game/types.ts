@@ -1,4 +1,5 @@
 export type Team = 'blue' | 'red';
+export type FighterSkin = 'vanguard' | 'ronin' | 'titan' | 'wraith';
 export type AttackKind = 'attack' | 'kick' | 'special';
 export type FighterAction = 'idle' | 'run' | 'dash' | 'jump' | AttackKind | 'block' | 'hurt' | 'ko';
 export type MatchStatus = 'waiting' | 'countdown' | 'fighting' | 'roundover' | 'matchover';
@@ -19,6 +20,7 @@ export interface PlayerSnapshot {
   id: string;
   name: string;
   team: Team;
+  skin: FighterSkin;
   x: number;
   y: number;
   vx: number;
@@ -59,6 +61,7 @@ export interface JoinPayload {
   roomCode: string;
   name: string;
   team: Team;
+  skin: FighterSkin;
 }
 
 export interface JoinResult {
