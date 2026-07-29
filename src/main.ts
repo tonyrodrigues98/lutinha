@@ -6,10 +6,11 @@ import '@fontsource/poppins/800.css';
 import Phaser from 'phaser';
 import { FightScene } from './game/FightScene';
 import { NetworkClient } from './game/network';
-import type { HitEvent, MatchSnapshot, PlayerInput, PlayerSnapshot, Team } from './game/types';
+import type { FighterSkin, HitEvent, MatchSnapshot, PlayerInput, PlayerSnapshot, Team } from './game/types';
 
 const network = new NetworkClient();
 let selectedTeam: Team = 'blue';
+let selectedFighter: FighterSkin = 'vanguard';
 let game: Phaser.Game | undefined;
 let latestSnapshot: MatchSnapshot | undefined;
 let inputSequence = 0;
@@ -122,6 +123,23 @@ document.querySelectorAll<HTMLButtonElement>('.team-choice').forEach((button) =>
   });
 });
 
+document.querySelectorAll<HTMLButtonElement>('.fighter-choice').forEach((button) => {
+  button.addEventListener('click', () => {
+    selectedFighter = button.dataset.fighter as FighterSkin;
+    localStorage.setItem('riftfall-fighter', selectedFighter);
+    document.querySelectorAll<HTMLButtonElement>('.fighter-choice').forEach((choice) => {
+      const selected = choice === button;
+      choice.classList.toggle('selected', selected);
+      choice.setAttribute('aria-pressed', String(selected));
+    });
+  });
+});
+
+const savedFighter = localStorage.getItem('riftfall-fighter') as FighterSkin | null;
+if (savedFighter && ['vanguard', 'ronin', 'titan', 'wraith'].includes(savedFighter)) {
+  document.querySelector<HTMLButtonElement>(`.fighter-choice[data-fighter="${savedFighter}"]`)?.click();
+}
+
 $('#new-room').addEventListener('click', () => {
   roomInput.value = generateRoomCode();
   lobbyError.textContent = '';
@@ -140,7 +158,7 @@ joinForm.addEventListener('submit', async (event) => {
 
   const name = nameInput.value.trim();
   const roomCode = roomInput.value.trim().toUpperCase();
-  const result = await network.join({ name, roomCode, team: selectedTeam });
+  const result = await network.join({ name, roomCode, team: selectedTeam, skin: selectedFighter });
   if (!result.ok) {
     lobbyError.textContent = result.message || 'Não foi possível entrar na arena.';
     joinButton.disabled = false;
