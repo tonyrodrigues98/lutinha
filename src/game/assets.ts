@@ -196,11 +196,13 @@ export const SHIELD_LABELS: Record<ShieldId, string> = {
   shield_square_color: 'Escudo quadrado real',
 };
 
+const publicAsset = (path: string): string => `${import.meta.env?.BASE_URL ?? '/'}${path.replace(/^\//, '')}`;
+
 export const ARENA_TEXTURES: Record<ArenaTheme, string> = {
-  riftfall: '/assets/riftfall-arena.webp',
-  ember: '/assets/arena-ember-forge.webp',
-  neon: '/assets/arena-neon-ruins.webp',
-  astral: '/assets/arena-astral-sanctuary.webp',
+  riftfall: publicAsset('assets/riftfall-arena.webp'),
+  ember: publicAsset('assets/arena-ember-forge.webp'),
+  neon: publicAsset('assets/arena-neon-ruins.webp'),
+  astral: publicAsset('assets/arena-astral-sanctuary.webp'),
 };
 
 const EXTRA_PROP_IDS = [
@@ -279,7 +281,7 @@ export class AssetVault {
       jobs.push({
         label: FIGHTERS[skin].name,
         run: async () => {
-          const gltf = await this.loader.loadAsync(`/assets/kaykit/characters/${FIGHTERS[skin].model}.glb`);
+          const gltf = await this.loader.loadAsync(publicAsset(`assets/kaykit/characters/${FIGHTERS[skin].model}.glb`));
           this.characters.set(skin, gltf);
         },
       });
@@ -289,7 +291,7 @@ export class AssetVault {
         jobs.push({
           label: `Animações ${rig} · ${pack.replace(/^Rig_(Medium|Large)_/, '')}`,
           run: async () => {
-            const gltf = await this.loader.loadAsync(`/assets/kaykit/animations/${pack}.glb`);
+            const gltf = await this.loader.loadAsync(publicAsset(`assets/kaykit/animations/${pack}.glb`));
             gltf.animations.forEach((clip) => {
               if (clip.name !== 'T-Pose') this.animations.set(`${rig}:${clip.name}`, clip);
             });
@@ -301,7 +303,7 @@ export class AssetVault {
       jobs.push({
         label: `Arsenal · ${id}`,
         run: async () => {
-          this.models.set(id, await this.loader.loadAsync(`/assets/kaykit/weapons/${id}.glb`));
+          this.models.set(id, await this.loader.loadAsync(publicAsset(`assets/kaykit/weapons/${id}.glb`)));
         },
       });
     });
@@ -328,7 +330,7 @@ export class AssetVault {
               : skin === 'hoodedRogue'
                 ? 'rogue_hooded'
                 : skin;
-          const response = await fetch(`/assets/kaykit/portraits/${portraitName}.${extension}`);
+          const response = await fetch(publicAsset(`assets/kaykit/portraits/${portraitName}.${extension}`));
           if (!response.ok) throw new Error(`Retrato ausente: ${skin}`);
           await response.body?.cancel();
         },

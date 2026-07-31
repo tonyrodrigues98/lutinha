@@ -165,7 +165,20 @@ const cleanRoomName = (value: unknown) => Array.from(
 const roomChannel = (roomName: string) => `riftfall:room:${roomName}`;
 const cleanName = (value: unknown) => String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 14);
 const cleanSkin = (value: unknown): FighterSkin | undefined => (
-  ['mage', 'minion', 'rogue', 'warrior'] as FighterSkin[]
+  [
+    'mage',
+    'minion',
+    'rogue',
+    'warrior',
+    'barbarian',
+    'knight',
+    'adventurerMage',
+    'ranger',
+    'adventurerRogue',
+    'hoodedRogue',
+    'mannequinMedium',
+    'mannequinLarge',
+  ] as FighterSkin[]
 ).find((skin) => skin === value);
 const cleanColor = (value: unknown): FighterColor | undefined => (
   ['azure', 'crimson', 'emerald', 'violet', 'gold', 'fuchsia', 'cyan', 'lime', 'orange', 'ice', 'coral', 'silver'] as FighterColor[]
