@@ -4,7 +4,8 @@ import '@fontsource/poppins/600.css';
 import '@fontsource/poppins/700.css';
 import '@fontsource/poppins/800.css';
 import { FIGHTERS, AssetVault, SHIELD_LABELS, WEAPON_LABELS, weaponClass } from './game/assets';
-import { NetworkClient } from './game/network';
+import { LocalCpuClient, type CpuDifficulty } from './game/localCpu';
+import { NetworkClient, type GameClient } from './game/network';
 import { ThreeFightRenderer } from './game/ThreeFightRenderer';
 import {
   SHIELD_IDS,
@@ -28,7 +29,11 @@ const $ = <T extends HTMLElement>(selector: string): T => {
 };
 
 const network = new NetworkClient();
+const cpu = new LocalCpuClient();
 const vault = new AssetVault();
+let selectedMode: 'online' | 'cpu' = 'online';
+let selectedDifficulty: CpuDifficulty = 'warrior';
+let activeClient: GameClient = network;
 let selectedTeam: Team = 'blue';
 let selectedFighter: FighterSkin = 'mage';
 let selectedColor: FighterColor = 'azure';
@@ -65,6 +70,9 @@ const attackButtonLabel = $('.attack-button span');
 const comboIndicator = $('#combo-indicator');
 const comboCountLabel = $('#combo-count');
 const motionButton = $('#motion-button') as HTMLButtonElement;
+const modeState = $('#mode-state');
+let unsubscribeSnapshot: (() => void) | undefined;
+let unsubscribeConnection: (() => void) | undefined;
 
 const isEditableTarget = (target: EventTarget | null): boolean => (
   target instanceof HTMLInputElement
@@ -243,6 +251,24 @@ document.querySelectorAll<HTMLButtonElement>('.arena-choice').forEach((button) =
   });
 });
 
+document.querySelectorAll<HTMLButtonElement>('.mode-choice').forEach((button) => {
+  button.addEventListener('click', () => {
+    selectedMode = button.dataset.mode as 'online' | 'cpu';
+    lobby.dataset.mode = selectedMode;
+    selectButtons('.mode-choice', selectedMode, 'mode');
+    joinButton.querySelector('span')!.textContent = selectedMode === 'cpu' ? 'LUTAR CONTRA CPU' : 'ENTRAR NA ARENA';
+    lobbyError.textContent = '';
+  });
+});
+
+document.querySelectorAll<HTMLButtonElement>('.difficulty-choice').forEach((button) => {
+  button.addEventListener('click', () => {
+    selectedDifficulty = button.dataset.difficulty as CpuDifficulty;
+    localStorage.setItem('riftfall-cpu-difficulty', selectedDifficulty);
+    selectButtons('.difficulty-choice', selectedDifficulty, 'difficulty');
+  });
+});
+
 const savedFighter = localStorage.getItem('riftfall-fighter') as FighterSkin | null;
 const savedColor = localStorage.getItem('riftfall-color') as FighterColor | null;
 const savedArena = localStorage.getItem('riftfall-arena') as ArenaTheme | null;
@@ -253,6 +279,8 @@ if (savedColor) document.querySelector<HTMLButtonElement>(`.color-choice[data-co
 if (savedArena) document.querySelector<HTMLButtonElement>(`.arena-choice[data-arena="${savedArena}"]`)?.click();
 if (savedWeapon && WEAPON_IDS.includes(savedWeapon)) chooseWeapon(savedWeapon);
 if (savedShield && SHIELD_IDS.includes(savedShield)) chooseShield(savedShield);
+const savedDifficulty = localStorage.getItem('riftfall-cpu-difficulty') as CpuDifficulty | null;
+document.querySelector<HTMLButtonElement>(`.difficulty-choice[data-difficulty="${savedDifficulty || 'warrior'}"]`)?.click();
 
 $('#new-room').addEventListener('click', () => {
   roomInput.value = generateRoomName();
@@ -268,12 +296,15 @@ joinForm.addEventListener('submit', async (event) => {
   void enterImmersiveMode();
   lobbyError.textContent = '';
   joinButton.disabled = true;
-  joinButton.querySelector('span')!.textContent = 'CONECTANDO...';
+  joinButton.querySelector('span')!.textContent = selectedMode === 'cpu' ? 'PREPARANDO CPU...' : 'CONECTANDO...';
 
   const name = nameInput.value.trim();
   const roomCode = sanitizeRoomName(roomInput.value, true);
   roomInput.value = roomCode;
-  const result = await network.join({
+  activeClient = selectedMode === 'cpu' ? cpu : network;
+  if (selectedMode === 'cpu') cpu.setDifficulty(selectedDifficulty);
+  bindActiveClient();
+  const result = await activeClient.join({
     name,
     roomCode,
     team: selectedTeam,
@@ -286,21 +317,23 @@ joinForm.addEventListener('submit', async (event) => {
   if (!result.ok) {
     lobbyError.textContent = result.message || 'Não foi possível entrar na arena.';
     joinButton.disabled = false;
-    joinButton.querySelector('span')!.textContent = 'ENTRAR NA ARENA';
+    joinButton.querySelector('span')!.textContent = selectedMode === 'cpu' ? 'LUTAR CONTRA CPU' : 'ENTRAR NA ARENA';
     return;
   }
 
   localStorage.setItem('riftfall-player-name', name);
-  history.replaceState(null, '', roomInviteUrl(result.roomCode || roomCode));
+  if (selectedMode === 'online') history.replaceState(null, '', roomInviteUrl(result.roomCode || roomCode));
   document.body.classList.add('game-active');
+  document.body.classList.toggle('cpu-mode', selectedMode === 'cpu');
+  modeState.textContent = selectedMode === 'cpu' ? `OFFLINE · ${selectedDifficulty === 'apprentice' ? 'APRENDIZ' : selectedDifficulty === 'warrior' ? 'GUERREIRO' : 'PESADELO'}` : 'ONLINE';
   lobby.classList.add('hidden');
   gameShell.classList.remove('hidden');
-  game ??= new ThreeFightRenderer($('#game-canvas'), network, vault);
+  game ??= new ThreeFightRenderer($('#game-canvas'), activeClient, vault);
 });
 
 function sendInput(): void {
   input.seq = ++inputSequence;
-  network.sendInput(input);
+  activeClient.sendInput(input);
 }
 
 function setInput(action: keyof Omit<PlayerInput, 'seq'>, active: boolean): void {
@@ -361,7 +394,7 @@ window.setInterval(() => {
   if (!gameShell.classList.contains('hidden')) sendInput();
 }, 50);
 
-network.onSnapshot((snapshot) => {
+const handleSnapshot = (snapshot: MatchSnapshot): void => {
   latestSnapshot = snapshot;
   updateHud(snapshot);
   if (snapshot.hit && snapshot.hit.id !== lastAudioHit) {
@@ -372,7 +405,7 @@ network.onSnapshot((snapshot) => {
     comboAttackerId = snapshot.hit.attackerId;
     lastComboAt = now;
     window.clearTimeout(comboTimer);
-    comboIndicator.classList.toggle('local', snapshot.hit.attackerId === network.id);
+    comboIndicator.classList.toggle('local', snapshot.hit.attackerId === activeClient.id);
     if (comboCount >= 2) {
       comboCountLabel.textContent = String(comboCount);
       comboIndicator.classList.remove('visible');
@@ -385,11 +418,20 @@ network.onSnapshot((snapshot) => {
       comboAttackerId = '';
     }, 1_050);
   }
-});
+};
 
-network.onConnection((connected) => {
+const handleConnection = (connected: boolean): void => {
   connectionState.classList.toggle('visible', !connected && !gameShell.classList.contains('hidden'));
-});
+};
+
+function bindActiveClient(): void {
+  unsubscribeSnapshot?.();
+  unsubscribeConnection?.();
+  unsubscribeSnapshot = activeClient.onSnapshot(handleSnapshot);
+  unsubscribeConnection = activeClient.onConnection(handleConnection);
+}
+
+bindActiveClient();
 
 function findTeam(snapshot: MatchSnapshot, team: Team): PlayerSnapshot | undefined {
   return snapshot.players.find((player) => player.team === team);
@@ -409,7 +451,7 @@ function updateFighterHud(team: Team, player?: PlayerSnapshot): void {
 function updateHud(snapshot: MatchSnapshot): void {
   const blue = findTeam(snapshot, 'blue');
   const red = findTeam(snapshot, 'red');
-  const local = snapshot.players.find((player) => player.id === network.id);
+  const local = snapshot.players.find((player) => player.id === activeClient.id);
   updateFighterHud('blue', blue);
   updateFighterHud('red', red);
   $('#round-label').textContent = `RODADA ${snapshot.round}`;
@@ -473,8 +515,8 @@ motionButton.addEventListener('click', () => {
 });
 
 $('#leave-button').addEventListener('click', () => {
-  network.leave();
-  location.href = roomInviteUrl(latestSnapshot?.roomCode || roomInput.value);
+  activeClient.leave();
+  location.href = selectedMode === 'online' ? roomInviteUrl(latestSnapshot?.roomCode || roomInput.value) : location.pathname;
 });
 
 let audioContext: AudioContext | undefined;

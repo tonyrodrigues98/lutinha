@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#07090d" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="description" content="Riftfall Arsenal, combate 3D online para dois jogadores." />
+    <meta name="description" content="Riftfall Arsenal, combate 3D online ou offline contra CPU." />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icon.svg" />
     <link rel="stylesheet" href="/src/style.css" />
@@ -27,9 +27,9 @@
       <section id="lobby" class="lobby-shell hidden" data-arena="riftfall">
         <div class="lobby-backdrop"></div>
         <header class="brand-block">
-          <span class="eyebrow">DUELO 3D ONLINE · 1 × 1</span>
+          <span class="eyebrow">DUELO 3D · ONLINE OU OFFLINE</span>
           <h1>RIFTFALL</h1>
-          <p>Monte seu guerreiro. Equipe o arsenal. Desafie um rival.</p>
+          <p>Monte seu guerreiro. Enfrente outro jogador ou treine contra a CPU sem internet.</p>
           <div class="pack-stats">
             <span><strong>4</strong> PERSONAGENS</span>
             <span><strong>26</strong> ARMAS</span>
@@ -43,12 +43,36 @@
             <strong>01</strong>
           </div>
 
+          <fieldset class="mode-picker">
+            <legend>Modo de batalha</legend>
+            <div class="mode-grid">
+              <button class="mode-choice selected" type="button" data-mode="online" aria-pressed="true">
+                <i class="mode-signal"></i>
+                <span><strong>ONLINE</strong><small>Duelo com outro jogador</small></span>
+              </button>
+              <button class="mode-choice cpu-choice" type="button" data-mode="cpu" aria-pressed="false">
+                <i class="mode-cpu"></i>
+                <span><strong>CONTRA CPU</strong><small>Teste local sem internet</small></span>
+                <b>OFFLINE</b>
+              </button>
+            </div>
+          </fieldset>
+
+          <fieldset class="difficulty-picker">
+            <legend>Dificuldade da CPU</legend>
+            <div class="difficulty-grid">
+              <button class="difficulty-choice" type="button" data-difficulty="apprentice" aria-pressed="false"><strong>APRENDIZ</strong><small>Mais lento</small></button>
+              <button class="difficulty-choice selected" type="button" data-difficulty="warrior" aria-pressed="true"><strong>GUERREIRO</strong><small>Equilibrado</small></button>
+              <button class="difficulty-choice" type="button" data-difficulty="nightmare" aria-pressed="false"><strong>PESADELO</strong><small>Reage rápido</small></button>
+            </div>
+          </fieldset>
+
           <div class="identity-grid">
             <label class="field-group" for="player-name">
               <span>Seu nome</span>
               <input id="player-name" name="playerName" maxlength="14" autocomplete="nickname" placeholder="Lutador" required />
             </label>
-            <label class="field-group room-field" for="room-code">
+            <label class="field-group room-field online-only" for="room-code">
               <span>Nome da sala</span>
               <span class="input-action">
                 <input id="room-code" name="roomCode" maxlength="48" inputmode="text" autocapitalize="sentences" autocomplete="off" placeholder="Arena do Tony ⚔" required />
@@ -133,7 +157,8 @@
           <button id="join-button" class="primary-button" type="submit">
             <span>ENTRAR NA ARENA</span><i>→</i>
           </button>
-          <p class="lobby-note">A primeira pessoa escolhe a arena. O rival usa o mesmo nome de sala e a equipe oposta.</p>
+          <p class="lobby-note online-note">A primeira pessoa escolhe a arena. O rival usa o mesmo nome de sala e a equipe oposta.</p>
+          <p class="lobby-note cpu-note">A luta roda inteiramente neste aparelho. A CPU escolhe automaticamente personagem, arma e equipe oposta.</p>
         </form>
       </section>
 
@@ -151,6 +176,7 @@
             <div class="fighter-sub"><span id="red-wins" class="round-pips"><i></i><i></i></span><span id="red-energy">ESSÊNCIA 0%</span></div>
           </div>
           <div class="round-hud"><small id="round-label">RODADA 1</small><strong id="round-timer">60</strong></div>
+          <div id="mode-state" class="mode-state">ONLINE</div>
 
           <div id="match-banner" class="match-banner">
             <span id="banner-kicker">SALA</span>

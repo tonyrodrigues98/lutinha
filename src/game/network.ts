@@ -4,14 +4,24 @@ import type { JoinPayload, JoinResult, MatchSnapshot, PlayerInput } from './type
 type SnapshotListener = (snapshot: MatchSnapshot) => void;
 type ConnectionListener = (connected: boolean) => void;
 
-export class NetworkClient {
+export interface GameClient {
+  readonly id: string | undefined;
+  readonly connected: boolean;
+  join(payload: JoinPayload): Promise<JoinResult>;
+  sendInput(input: PlayerInput): void;
+  leave(): void;
+  onSnapshot(listener: SnapshotListener): () => void;
+  onConnection(listener: ConnectionListener): () => void;
+}
+
+export class NetworkClient implements GameClient {
   private readonly socket: Socket;
   private snapshotListeners = new Set<SnapshotListener>();
   private connectionListeners = new Set<ConnectionListener>();
 
   constructor() {
     this.socket = io({
-      autoConnect: true,
+      autoConnect: false,
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelayMax: 2_000,
@@ -34,10 +44,20 @@ export class NetworkClient {
 
   join(payload: JoinPayload): Promise<JoinResult> {
     return new Promise((resolve) => {
-      this.socket.timeout(6_000).emit('joinMatch', payload, (error: Error | null, result: JoinResult) => {
-        if (error) resolve({ ok: false, message: 'O servidor da arena não respondeu. Tente novamente.' });
-        else resolve(result);
-      });
+      const submit = () => {
+        this.socket.timeout(6_000).emit('joinMatch', payload, (error: Error | null, result: JoinResult) => {
+          if (error) resolve({ ok: false, message: 'O servidor da arena não respondeu. Tente novamente.' });
+          else resolve(result);
+        });
+      };
+      if (this.socket.connected) submit();
+      else {
+        this.socket.connect();
+        this.socket.once('connect', submit);
+        this.socket.once('connect_error', () => {
+          resolve({ ok: false, message: 'A arena online está indisponível. O modo Contra CPU funciona sem internet.' });
+        });
+      }
     });
   }
 

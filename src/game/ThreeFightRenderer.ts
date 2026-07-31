@@ -29,7 +29,7 @@ import {
   Vector3,
   WebGLRenderer,
 } from 'three';
-import type { NetworkClient } from './network';
+import type { GameClient } from './network';
 import type { FighterAction, HitEvent, MatchSnapshot, PlayerSnapshot } from './types';
 import { AssetVault, fighterColor, weaponClass } from './assets';
 
@@ -157,7 +157,7 @@ export class ThreeFightRenderer {
   private readonly fighters = new Map<string, FighterView>();
   private readonly effects: TimedEffect[] = [];
   private readonly background: Mesh<PlaneGeometry, MeshBasicMaterial>;
-  private readonly network: NetworkClient;
+  private readonly network: GameClient;
   private readonly vault: AssetVault;
   private unsubscribe?: () => void;
   private frame = 0;
@@ -166,7 +166,7 @@ export class ThreeFightRenderer {
   private arena?: MatchSnapshot['arena'];
   private destroyed = false;
 
-  constructor(container: HTMLElement, network: NetworkClient, vault: AssetVault) {
+  constructor(container: HTMLElement, network: GameClient, vault: AssetVault) {
     this.network = network;
     this.vault = vault;
     this.renderer = new WebGLRenderer({
