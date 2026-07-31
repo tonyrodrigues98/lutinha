@@ -26,7 +26,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          VITE_BASE_PATH: /lutinha/
+          VITE_BASE_PATH: /
       - uses: actions/configure-pages@v5
         with:
           enablement: true
