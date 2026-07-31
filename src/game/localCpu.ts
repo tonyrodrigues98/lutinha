@@ -1,4 +1,5 @@
 import { FIGHTERS } from './assets';
+import { FIGHTER_STATS, weaponProfile } from './combatBalance';
 import type { GameClient } from './network';
 import type {
   AttackKind,
@@ -35,15 +36,6 @@ interface FighterState extends Omit<PlayerSnapshot, 'action'> {
   hurtUntil: number;
 }
 
-interface WeaponProfile {
-  range: number;
-  damage: number;
-  windup: number;
-  active: number;
-  recovery: number;
-  knockback: number;
-}
-
 interface CpuProfile {
   reaction: number;
   aggression: number;
@@ -63,20 +55,6 @@ const CPU_PROFILES: Record<CpuDifficulty, CpuProfile> = {
   nightmare: { reaction: 75, aggression: 0.94, guardChance: 0.7, attackChance: 0.92, mistakeChance: 0.025 },
 };
 
-const FIGHTER_STATS: Record<FighterSkin, {
-  speed: number;
-  jump: number;
-  dash: number;
-  damage: number;
-  defense: number;
-  energy: number;
-}> = {
-  mage: { speed: 0.96, jump: 1, dash: 1, damage: 1.06, defense: 1.03, energy: 1.18 },
-  minion: { speed: 1.1, jump: 1.08, dash: 1.1, damage: 0.94, defense: 1.06, energy: 1.08 },
-  rogue: { speed: 1.15, jump: 1.06, dash: 1.16, damage: 0.98, defense: 1.08, energy: 1.1 },
-  warrior: { speed: 0.88, jump: 0.92, dash: 0.9, damage: 1.16, defense: 0.88, energy: 0.92 },
-};
-
 const emptyInput = (): PlayerInput => ({
   left: false,
   right: false,
@@ -88,28 +66,6 @@ const emptyInput = (): PlayerInput => ({
   special: false,
   seq: 0,
 });
-
-const weaponProfile = (weapon: WeaponId): WeaponProfile => {
-  if (weapon.startsWith('bow_') || weapon === 'Skeleton_Crossbow') {
-    return { range: 900, damage: 0.9, windup: 330, active: 620, recovery: 760, knockback: 250 };
-  }
-  if (weapon.includes('Staff') || weapon.startsWith('staff_') || weapon === 'wand_A') {
-    return { range: 720, damage: 1.02, windup: 300, active: 650, recovery: 780, knockback: 310 };
-  }
-  if (weapon.startsWith('hammer_') || weapon === 'halberd') {
-    return { range: 420, damage: 1.28, windup: 245, active: 610, recovery: 760, knockback: 390 };
-  }
-  if (weapon === 'spear_A') {
-    return { range: 465, damage: 1.08, windup: 195, active: 520, recovery: 630, knockback: 315 };
-  }
-  if (weapon.startsWith('dagger_') || weapon.startsWith('fistweapon_')) {
-    return { range: 365, damage: 0.86, windup: 95, active: 300, recovery: 350, knockback: 235 };
-  }
-  if (weapon.startsWith('axe_') || weapon === 'Skeleton_Axe') {
-    return { range: 390, damage: 1.14, windup: 175, active: 470, recovery: 570, knockback: 325 };
-  }
-  return { range: 375, damage: 1, windup: 130, active: 390, recovery: 470, knockback: 280 };
-};
 
 const createFighter = (
   id: string,

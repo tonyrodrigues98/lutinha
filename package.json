@@ -10,7 +10,10 @@
     "start": "NODE_ENV=production node --import tsx server/index.ts",
     "check": "tsc --noEmit",
     "test:multiplayer": "node tests/multiplayer.mjs",
-    "test:cpu": "node --import tsx tests/cpu.mts"
+    "test:cpu": "node --import tsx tests/cpu.mts",
+    "test:equipment": "node --import tsx tests/equipment.mts",
+    "test:balance": "node --import tsx tests/balance.mts",
+    "test:assets": "node --import tsx tests/assets.mts"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.3.0",

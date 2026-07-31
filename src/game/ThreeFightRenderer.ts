@@ -32,6 +32,7 @@ import {
 import type { GameClient } from './network';
 import type { FighterAction, HitEvent, MatchSnapshot, PlayerSnapshot } from './types';
 import { AssetVault, fighterColor, weaponClass } from './assets';
+import { equipLoadout } from './equipment';
 
 interface FighterView {
   root: Group;
@@ -162,6 +163,8 @@ export class ThreeFightRenderer {
   private unsubscribe?: () => void;
   private frame = 0;
   private localTarget = new Vector3(0, 1.25, 0);
+  private readonly cameraFocus = new Vector3(0, 1.15, 0);
+  private readonly desiredCamera = new Vector3(0, 2.45, 8.1);
   private lastHitId = 0;
   private arena?: MatchSnapshot['arena'];
   private destroyed = false;
@@ -318,19 +321,7 @@ export class ThreeFightRenderer {
   }
 
   private attachEquipment(model: Object3D, player: PlayerSnapshot): void {
-    const right = model.getObjectByName('handslot.r') ?? model.getObjectByName('hand.r');
-    const left = model.getObjectByName('handslot.l') ?? model.getObjectByName('hand.l');
-    const equip = (slot: Object3D | undefined, id: string, mirror = false) => {
-      if (!slot) return;
-      const item = this.vault.cloneModel(id);
-      item.name = `equipped:${id}`;
-      if (mirror) item.rotation.y = Math.PI;
-      slot.add(item);
-    };
-
-    equip(right, player.weapon);
-    if (viewNeedsDualWeapon(player.weapon)) equip(left, player.weapon, true);
-    else if (player.shield !== 'none') equip(left, player.shield);
+    equipLoadout(model, player, (id) => this.vault.cloneModel(id));
     if (player.weapon === 'bow_A_withString' || player.weapon === 'bow_B_withString' || player.weapon === 'Skeleton_Crossbow') {
       const quiver = this.vault.cloneModel('Skeleton_Quiver');
       quiver.scale.setScalar(0.9);
@@ -413,6 +404,8 @@ export class ThreeFightRenderer {
       view.mixer.update(dt);
       view.label.quaternion.copy(this.camera.quaternion);
     }
+    const localView = this.network.id ? this.fighters.get(this.network.id) : undefined;
+    if (localView) this.localTarget.copy(localView.root.position);
 
     for (let index = this.effects.length - 1; index >= 0; index -= 1) {
       const effect = this.effects[index];
@@ -425,9 +418,15 @@ export class ThreeFightRenderer {
       }
     }
 
-    const desiredCamera = new Vector3(this.localTarget.x, 2.45, 8.1);
-    this.camera.position.lerp(desiredCamera, 1 - Math.pow(0.035, dt));
-    this.camera.lookAt(this.localTarget.x, 1.15, 0);
+    const horizontalDelta = this.localTarget.x - this.cameraFocus.x;
+    const cameraDeadZone = 0.2;
+    const desiredFocusX = Math.abs(horizontalDelta) <= cameraDeadZone
+      ? this.cameraFocus.x
+      : this.localTarget.x - Math.sign(horizontalDelta) * cameraDeadZone;
+    this.cameraFocus.x += (desiredFocusX - this.cameraFocus.x) * (1 - Math.exp(-7 * dt));
+    this.desiredCamera.set(this.cameraFocus.x, 2.45, 8.1);
+    this.camera.position.lerp(this.desiredCamera, 1 - Math.exp(-6 * dt));
+    this.camera.lookAt(this.cameraFocus);
     this.renderer.render(this.scene, this.camera);
   };
 
@@ -450,7 +449,3 @@ export class ThreeFightRenderer {
     this.renderer.domElement.remove();
   }
 }
-
-const viewNeedsDualWeapon = (weapon: PlayerSnapshot['weapon']): boolean => (
-  weapon.startsWith('dagger_') || weapon.startsWith('fistweapon_')
-);
