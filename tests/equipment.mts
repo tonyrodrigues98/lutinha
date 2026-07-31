@@ -39,6 +39,34 @@ const shield = equipLoadout(
 assert.equal(shield.rightHand.name, 'equipped:Skeleton_Axe');
 assert.equal(shield.leftHand?.name, 'equipped:Skeleton_Shield_Large_A');
 
+const sanitizedRig = new Group();
+const sanitizedRight = new Bone();
+sanitizedRight.name = 'handslotr';
+const sanitizedLeft = new Bone();
+sanitizedLeft.name = 'handslotl';
+sanitizedRig.add(sanitizedRight, sanitizedLeft);
+const runtimeNames = equipLoadout(
+  sanitizedRig,
+  { weapon: 'Skeleton_Axe', shield: 'Skeleton_Shield_Large_A' },
+  makeItem,
+);
+assert.equal(runtimeNames.rightHand.parent?.name, 'handslotr');
+assert.equal(runtimeNames.leftHand?.parent?.name, 'handslotl');
+
+const mannequinRig = new Group();
+const mannequinRight = new Bone();
+mannequinRight.name = 'hand.r';
+const mannequinLeft = new Bone();
+mannequinLeft.name = 'hand.l';
+mannequinRig.add(mannequinRight, mannequinLeft);
+const generatedSockets = equipLoadout(
+  mannequinRig,
+  { weapon: 'sword_A', shield: 'shield_A' },
+  makeItem,
+);
+assert.equal(generatedSockets.rightHand.parent?.name, 'handslot.r');
+assert.equal(generatedSockets.leftHand?.parent?.name, 'handslot.l');
+
 assert.throws(
   () => equipLoadout(new Group(), { weapon: 'sword_A', shield: 'none' }, makeItem),
   /handslot\.r/,

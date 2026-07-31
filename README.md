@@ -6,8 +6,8 @@ Jogo de luta 3D mobile-first, online para duas pessoas ou offline contra CPU. Os
 
 - multiplayer real com Socket.IO e servidor autoritativo;
 - modo offline contra CPU com três dificuldades;
-- quatro personagens 3D selecionáveis;
-- 26 armas e sete escudos sincronizados;
+- 12 personagens 3D selecionáveis;
+- 41 armas e 16 escudos sincronizados;
 - armas e escudos presos obrigatoriamente aos sockets `handslot.r` e `handslot.l` dos rigs durante todas as animações;
 - combate diferente por arma: leve, uma mão, pesado, lança, arco, besta ou magia;
 - necromante com conjuração mais lenta, alcance e dano reduzidos para permitir aproximação e contra-ataque;

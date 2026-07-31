@@ -103,6 +103,25 @@ const LOOPING_ACTIONS = new Set<FighterAction>(['idle', 'run', 'jump', 'block'])
 
 const actionClip = (action: FighterAction, fighter: PlayerSnapshot): string => {
   const kind = weaponClass(fighter.weapon);
+  if (fighter.skin === 'mannequinLarge') {
+    if (action === 'intro' || action === 'idle' || action === 'jump') return kind === 'heavy' || kind === 'polearm' ? 'Melee_2H_Idle' : 'Idle_A';
+    if (action === 'run') return 'Running_A';
+    if (action === 'dash') return 'Dodge_Forward';
+    if (action === 'kick') return 'Melee_Unarmed_Kick';
+    if (action === 'block') return 'Melee_Blocking';
+    if (action === 'hurt') return 'Hit_A';
+    if (action === 'ko') return 'Death_A';
+    if (action === 'victory') return 'Flexing';
+    if (action === 'special') {
+      if (kind === 'heavy' || kind === 'polearm') return 'Melee_2H_Slam';
+      if (kind === 'dual') return 'Melee_Dualwield_SlashCombo';
+      return 'Melee_1H_Stab';
+    }
+    if (kind === 'heavy' || kind === 'polearm') return 'Melee_2H_Attack';
+    if (kind === 'dual') return 'Melee_Dualwield_Slash';
+    if (kind === 'magic' || kind === 'bow' || kind === 'ranged') return 'Melee_1H_Stab';
+    return 'Melee_1H_Slash';
+  }
   if (action === 'intro') return 'Skeletons_Spawn_Ground';
   if (action === 'idle') return kind === 'magic' ? 'Ranged_Magic_Spellcasting' : kind === 'bow' ? 'Ranged_Bow_Idle' : kind === 'heavy' || kind === 'polearm' ? 'Melee_2H_Idle' : 'Skeletons_Idle';
   if (action === 'run') return kind === 'bow' ? 'Running_HoldingBow' : 'Running_A';
@@ -310,7 +329,9 @@ export class ThreeFightRenderer {
 
     view.target.set(worldX(player.x), worldY(player.y), player.team === 'blue' ? 0.08 : -0.08);
     view.facing = player.facing;
-    const desiredRotation = player.facing === 1 ? Math.PI / 2 : -Math.PI / 2;
+    // Keep the fighter mostly side-on while revealing both hand sockets to the camera.
+    // A perfect 90° profile hides the off-hand shield behind the torso.
+    const desiredRotation = player.facing * (Math.PI / 2 - 0.32);
     view.model.rotation.y = desiredRotation;
     if (view.action !== player.action) {
       view.action = player.action;
@@ -322,8 +343,9 @@ export class ThreeFightRenderer {
 
   private attachEquipment(model: Object3D, player: PlayerSnapshot): void {
     equipLoadout(model, player, (id) => this.vault.cloneModel(id));
-    if (player.weapon === 'bow_A_withString' || player.weapon === 'bow_B_withString' || player.weapon === 'Skeleton_Crossbow') {
-      const quiver = this.vault.cloneModel('Skeleton_Quiver');
+    if (weaponClass(player.weapon) === 'bow' || player.weapon === 'Skeleton_Crossbow' || player.weapon.startsWith('crossbow_')) {
+      const adventurerEquipment = player.weapon === 'bow' || player.weapon === 'bow_withString' || player.weapon.startsWith('crossbow_');
+      const quiver = this.vault.cloneModel(adventurerEquipment ? 'quiver' : 'Skeleton_Quiver');
       quiver.scale.setScalar(0.9);
       quiver.position.set(-0.28, 1.15, -0.3);
       quiver.rotation.set(0.2, 0, -0.35);
@@ -332,8 +354,9 @@ export class ThreeFightRenderer {
   }
 
   private playAnimation(view: FighterView, action: FighterAction, player: PlayerSnapshot): void {
-    const clip = this.vault.animations.get(actionClip(action, player))
-      ?? this.vault.animations.get('Skeletons_Idle');
+    const clip = this.vault.animation(player.skin, actionClip(action, player))
+      ?? this.vault.animation(player.skin, 'Idle_A')
+      ?? this.vault.animation(player.skin, 'Skeletons_Idle');
     if (!clip) return;
     const next = view.mixer.clipAction(clip, view.model);
     const looping = LOOPING_ACTIONS.has(action);
@@ -356,7 +379,14 @@ export class ThreeFightRenderer {
         new MeshBasicMaterial({ color: fighterColor(fighter.color), transparent: true, opacity: 0.95, blending: AdditiveBlending }),
       );
     } else {
-      projectile = this.vault.cloneModel(fighter.weapon === 'Skeleton_Crossbow' ? 'Skeleton_Arrow' : fighter.team === 'blue' ? 'arrow_A' : 'arrow_B');
+      const projectileId = fighter.weapon === 'Skeleton_Crossbow'
+        ? 'Skeleton_Arrow'
+        : fighter.weapon.startsWith('crossbow_')
+          ? 'arrow_crossbow'
+          : fighter.weapon === 'bow' || fighter.weapon === 'bow_withString'
+            ? 'arrow_bow'
+            : fighter.team === 'blue' ? 'arrow_A' : 'arrow_B';
+      projectile = this.vault.cloneModel(projectileId);
       projectile.scale.setScalar(0.78);
       projectile.rotation.z = fighter.facing === 1 ? -Math.PI / 2 : Math.PI / 2;
     }

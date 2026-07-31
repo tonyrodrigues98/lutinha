@@ -20,6 +20,7 @@ export const FIGHTERS: Record<FighterSkin, {
   defaultWeapon: WeaponId;
   defaultShield: ShieldId;
   scale: number;
+  rig: 'medium' | 'large';
 }> = {
   mage: {
     name: 'Necromante',
@@ -28,6 +29,7 @@ export const FIGHTERS: Record<FighterSkin, {
     defaultWeapon: 'Skeleton_Staff',
     defaultShield: 'none',
     scale: 0.98,
+    rig: 'medium',
   },
   minion: {
     name: 'Rastejante',
@@ -36,6 +38,7 @@ export const FIGHTERS: Record<FighterSkin, {
     defaultWeapon: 'dagger_A',
     defaultShield: 'shield_A',
     scale: 0.93,
+    rig: 'medium',
   },
   rogue: {
     name: 'Lâmina Sombria',
@@ -44,6 +47,7 @@ export const FIGHTERS: Record<FighterSkin, {
     defaultWeapon: 'dagger_B',
     defaultShield: 'none',
     scale: 1,
+    rig: 'medium',
   },
   warrior: {
     name: 'Guardião Ósseo',
@@ -52,6 +56,79 @@ export const FIGHTERS: Record<FighterSkin, {
     defaultWeapon: 'Skeleton_Axe',
     defaultShield: 'Skeleton_Shield_Large_A',
     scale: 1.04,
+    rig: 'medium',
+  },
+  barbarian: {
+    name: 'Bárbaro',
+    role: 'Brutal · duas mãos',
+    model: 'Barbarian',
+    defaultWeapon: 'axe_2handed',
+    defaultShield: 'none',
+    scale: 1,
+    rig: 'medium',
+  },
+  knight: {
+    name: 'Cavaleiro',
+    role: 'Defesa · disciplina',
+    model: 'Knight',
+    defaultWeapon: 'sword_1handed',
+    defaultShield: 'shield_badge',
+    scale: 1,
+    rig: 'medium',
+  },
+  adventurerMage: {
+    name: 'Maga Arcana',
+    role: 'Magia · controle',
+    model: 'Mage',
+    defaultWeapon: 'staff',
+    defaultShield: 'none',
+    scale: 1,
+    rig: 'medium',
+  },
+  ranger: {
+    name: 'Patrulheira',
+    role: 'Arco · mobilidade',
+    model: 'Ranger',
+    defaultWeapon: 'bow_withString',
+    defaultShield: 'none',
+    scale: 1,
+    rig: 'medium',
+  },
+  adventurerRogue: {
+    name: 'Ladina',
+    role: 'Adagas · precisão',
+    model: 'Rogue',
+    defaultWeapon: 'dagger',
+    defaultShield: 'none',
+    scale: 1,
+    rig: 'medium',
+  },
+  hoodedRogue: {
+    name: 'Ladina Encapuzada',
+    role: 'Furtiva · veloz',
+    model: 'Rogue_Hooded',
+    defaultWeapon: 'crossbow_1handed',
+    defaultShield: 'none',
+    scale: 1,
+    rig: 'medium',
+  },
+  mannequinMedium: {
+    name: 'Manequim Médio',
+    role: 'Treino · Rig Medium',
+    model: 'Mannequin_Medium',
+    defaultWeapon: 'sword_A',
+    defaultShield: 'shield_A',
+    scale: 1,
+    rig: 'medium',
+  },
+  mannequinLarge: {
+    name: 'Manequim Grande',
+    role: 'Treino · Rig Large',
+    model: 'Mannequin_Large',
+    defaultWeapon: 'axe_2handed',
+    defaultShield: 'none',
+    scale: 0.82,
+    rig: 'large',
   },
 };
 
@@ -82,6 +159,21 @@ export const WEAPON_LABELS: Record<WeaponId, string> = {
   sword_D: 'Espada D',
   sword_E: 'Espada E',
   wand_A: 'Varinha',
+  axe_1handed: 'Machado de uma mão',
+  axe_2handed: 'Machado de duas mãos',
+  bow: 'Arco simples',
+  bow_withString: 'Arco da patrulheira',
+  crossbow_1handed: 'Besta de uma mão',
+  crossbow_2handed: 'Besta de duas mãos',
+  dagger: 'Adaga da ladina',
+  smokebomb: 'Bomba de fumaça',
+  spellbook_closed: 'Grimório fechado',
+  spellbook_open: 'Grimório aberto',
+  staff: 'Cajado arcano',
+  sword_1handed: 'Espada de uma mão',
+  sword_2handed: 'Espada de duas mãos',
+  sword_2handed_color: 'Espada real de duas mãos',
+  wand: 'Varinha arcana',
 };
 
 export const SHIELD_LABELS: Record<ShieldId, string> = {
@@ -93,6 +185,15 @@ export const SHIELD_LABELS: Record<ShieldId, string> = {
   shield_A: 'Escudo A',
   shield_B: 'Escudo B',
   shield_C: 'Escudo C',
+  shield_badge: 'Escudo com brasão',
+  shield_badge_color: 'Escudo com brasão real',
+  shield_round: 'Escudo redondo',
+  shield_round_barbarian: 'Escudo bárbaro',
+  shield_round_color: 'Escudo redondo real',
+  shield_spikes: 'Escudo com espinhos',
+  shield_spikes_color: 'Escudo com espinhos real',
+  shield_square: 'Escudo quadrado',
+  shield_square_color: 'Escudo quadrado real',
 };
 
 export const ARENA_TEXTURES: Record<ArenaTheme, string> = {
@@ -114,18 +215,31 @@ const EXTRA_PROP_IDS = [
   'bow_B',
   'fistweapon_A_stacked',
   'fistweapon_B_stacked',
+  'arrow_bow',
+  'arrow_crossbow',
+  'quiver',
 ] as const;
 
-const ANIMATION_PACKS = [
-  'Rig_Medium_CombatMelee',
-  'Rig_Medium_CombatRanged',
-  'Rig_Medium_General',
-  'Rig_Medium_MovementAdvanced',
-  'Rig_Medium_MovementBasic',
-  'Rig_Medium_Simulation',
-  'Rig_Medium_Special',
-  'Rig_Medium_Tools',
-] as const;
+const ANIMATION_PACKS = {
+  medium: [
+    'Rig_Medium_CombatMelee',
+    'Rig_Medium_CombatRanged',
+    'Rig_Medium_General',
+    'Rig_Medium_MovementAdvanced',
+    'Rig_Medium_MovementBasic',
+    'Rig_Medium_Simulation',
+    'Rig_Medium_Special',
+    'Rig_Medium_Tools',
+  ],
+  large: [
+    'Rig_Large_CombatMelee',
+    'Rig_Large_General',
+    'Rig_Large_MovementAdvanced',
+    'Rig_Large_MovementBasic',
+    'Rig_Large_Simulation',
+    'Rig_Large_Special',
+  ],
+} as const;
 
 const colorValues: Record<FighterColor, number> = {
   azure: 0x38bdf8,
@@ -170,15 +284,17 @@ export class AssetVault {
         },
       });
     });
-    ANIMATION_PACKS.forEach((pack) => {
-      jobs.push({
-        label: `Animações · ${pack.replace('Rig_Medium_', '')}`,
-        run: async () => {
-          const gltf = await this.loader.loadAsync(`/assets/kaykit/animations/${pack}.glb`);
-          gltf.animations.forEach((clip) => {
-            if (clip.name !== 'T-Pose') this.animations.set(clip.name, clip);
-          });
-        },
+    (Object.entries(ANIMATION_PACKS) as Array<['medium' | 'large', readonly string[]]>).forEach(([rig, packs]) => {
+      packs.forEach((pack) => {
+        jobs.push({
+          label: `Animações ${rig} · ${pack.replace(/^Rig_(Medium|Large)_/, '')}`,
+          run: async () => {
+            const gltf = await this.loader.loadAsync(`/assets/kaykit/animations/${pack}.glb`);
+            gltf.animations.forEach((clip) => {
+              if (clip.name !== 'T-Pose') this.animations.set(`${rig}:${clip.name}`, clip);
+            });
+          },
+        });
       });
     });
     [...WEAPON_IDS, ...SHIELD_IDS.filter((id) => id !== 'none'), ...EXTRA_PROP_IDS].forEach((id) => {
@@ -193,10 +309,28 @@ export class AssetVault {
       jobs.push({
         label: `Retrato · ${FIGHTERS[skin].name}`,
         run: async () => {
-          const response = await fetch(`/assets/kaykit/portraits/${skin}.webp`);
+          const extension = [
+            'barbarian',
+            'knight',
+            'adventurerMage',
+            'ranger',
+            'adventurerRogue',
+            'hoodedRogue',
+            'mannequinMedium',
+            'mannequinLarge',
+          ].includes(skin)
+            ? 'png'
+            : 'webp';
+          const portraitName = skin === 'adventurerMage'
+            ? 'mage'
+            : skin === 'adventurerRogue'
+              ? 'rogue'
+              : skin === 'hoodedRogue'
+                ? 'rogue_hooded'
+                : skin;
+          const response = await fetch(`/assets/kaykit/portraits/${portraitName}.${extension}`);
           if (!response.ok) throw new Error(`Retrato ausente: ${skin}`);
-          const bitmap = await createImageBitmap(await response.blob());
-          bitmap.close();
+          await response.body?.cancel();
         },
       });
     });
@@ -240,6 +374,10 @@ export class AssetVault {
     return root;
   }
 
+  animation(skin: FighterSkin, name: string): AnimationClip | undefined {
+    return this.animations.get(`${FIGHTERS[skin].rig}:${name}`);
+  }
+
   cloneModel(id: string): Object3D {
     const source = this.models.get(id);
     if (!source) throw new Error(`Asset não carregado: ${id}`);
@@ -274,11 +412,23 @@ export class AssetVault {
 }
 
 export const weaponClass = (weapon: WeaponId): 'bow' | 'magic' | 'ranged' | 'dual' | 'heavy' | 'polearm' | 'onehand' => {
-  if (weapon.startsWith('bow_')) return 'bow';
-  if (weapon === 'Skeleton_Crossbow') return 'ranged';
-  if (weapon.includes('Staff') || weapon.startsWith('staff_') || weapon === 'wand_A') return 'magic';
-  if (weapon.startsWith('dagger_') || weapon.startsWith('fistweapon_')) return 'dual';
-  if (weapon.startsWith('hammer_') || weapon === 'halberd') return 'heavy';
+  if (weapon === 'bow' || weapon === 'bow_withString' || weapon.startsWith('bow_')) return 'bow';
+  if (weapon === 'Skeleton_Crossbow' || weapon.startsWith('crossbow_') || weapon === 'smokebomb') return 'ranged';
+  if (
+    weapon.includes('Staff')
+    || weapon === 'staff'
+    || weapon.startsWith('staff_')
+    || weapon === 'wand'
+    || weapon === 'wand_A'
+    || weapon.startsWith('spellbook_')
+  ) return 'magic';
+  if (weapon === 'dagger' || weapon.startsWith('dagger_') || weapon.startsWith('fistweapon_')) return 'dual';
+  if (
+    weapon.startsWith('hammer_')
+    || weapon === 'halberd'
+    || weapon === 'axe_2handed'
+    || weapon.startsWith('sword_2handed')
+  ) return 'heavy';
   if (weapon === 'spear_A') return 'polearm';
   return 'onehand';
 };

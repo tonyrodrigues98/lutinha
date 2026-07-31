@@ -17,14 +17,23 @@ const readGlbJson = (path: string): GlbJson => {
   return JSON.parse(json) as GlbJson;
 };
 
+assert.equal(Object.keys(FIGHTERS).length, 12, 'O catálogo deve conter todos os 12 personagens dos packs');
+
 for (const fighter of Object.values(FIGHTERS)) {
   const glb = readGlbJson(join('public/assets/kaykit/characters', `${fighter.model}.glb`));
   const names = new Set(glb.nodes?.map((node) => node.name));
-  assert.ok(names.has('handslot.r'), `${fighter.model} não possui handslot.r`);
-  assert.ok(names.has('handslot.l'), `${fighter.model} não possui handslot.l`);
+  assert.ok(
+    names.has('handslot.r') || names.has('hand.r'),
+    `${fighter.model} não possui handslot.r nem hand.r para criar o socket`,
+  );
+  assert.ok(
+    names.has('handslot.l') || names.has('hand.l'),
+    `${fighter.model} não possui handslot.l nem hand.l para criar o socket`,
+  );
 }
 
 const selectableEquipment = [...WEAPON_IDS, ...SHIELD_IDS.filter((id) => id !== 'none')];
+assert.equal(selectableEquipment.length, 57, 'O catálogo deve conter 41 armas e 16 escudos');
 const files = new Set(readdirSync('public/assets/kaykit/weapons'));
 for (const id of selectableEquipment) {
   const filename = `${id}.glb`;

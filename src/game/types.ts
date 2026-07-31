@@ -1,5 +1,17 @@
 export type Team = 'blue' | 'red';
-export type FighterSkin = 'mage' | 'minion' | 'rogue' | 'warrior';
+export type FighterSkin =
+  | 'mage'
+  | 'minion'
+  | 'rogue'
+  | 'warrior'
+  | 'barbarian'
+  | 'knight'
+  | 'adventurerMage'
+  | 'ranger'
+  | 'adventurerRogue'
+  | 'hoodedRogue'
+  | 'mannequinMedium'
+  | 'mannequinLarge';
 export type FighterColor = 'azure' | 'crimson' | 'emerald' | 'violet' | 'gold' | 'fuchsia' | 'cyan' | 'lime' | 'orange' | 'ice' | 'coral' | 'silver';
 export type ArenaTheme = 'riftfall' | 'ember' | 'neon' | 'astral';
 export type AttackKind = 'attack' | 'kick' | 'special';
@@ -33,6 +45,21 @@ export const WEAPON_IDS = [
   'sword_D',
   'sword_E',
   'wand_A',
+  'axe_1handed',
+  'axe_2handed',
+  'bow',
+  'bow_withString',
+  'crossbow_1handed',
+  'crossbow_2handed',
+  'dagger',
+  'smokebomb',
+  'spellbook_closed',
+  'spellbook_open',
+  'staff',
+  'sword_1handed',
+  'sword_2handed',
+  'sword_2handed_color',
+  'wand',
 ] as const;
 
 export type WeaponId = typeof WEAPON_IDS[number];
@@ -46,6 +73,15 @@ export const SHIELD_IDS = [
   'shield_A',
   'shield_B',
   'shield_C',
+  'shield_badge',
+  'shield_badge_color',
+  'shield_round',
+  'shield_round_barbarian',
+  'shield_round_color',
+  'shield_spikes',
+  'shield_spikes_color',
+  'shield_square',
+  'shield_square_color',
 ] as const;
 
 export type ShieldId = typeof SHIELD_IDS[number];
