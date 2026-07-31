@@ -207,7 +207,8 @@ button {
 
 .card-heading strong { color: #475569; font-size: 28px; letter-spacing: -.08em; }
 .mode-picker,
-.difficulty-picker {
+.difficulty-picker,
+.campaign-picker {
   min-width: 0;
   margin: 0 0 22px;
   padding: 0;
@@ -215,7 +216,8 @@ button {
 }
 
 .mode-picker legend,
-.difficulty-picker legend {
+.difficulty-picker legend,
+.campaign-picker legend {
   width: 100%;
   margin-bottom: 9px;
   color: #94a3b8;
@@ -226,6 +228,7 @@ button {
 
 .mode-grid,
 .difficulty-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+.mode-grid { grid-template-columns: repeat(3, 1fr); }
 .mode-choice {
   position: relative;
   display: flex;
@@ -248,14 +251,18 @@ button {
 .mode-signal::after { inset: 12px; background: #38bdf8; box-shadow: 0 0 10px #38bdf8; }
 .mode-cpu { border-radius: 7px !important; border-color: #d8b4fe !important; }
 .mode-cpu::before { content: ''; position: absolute; inset: 6px; border: 1px solid #d8b4fe; border-radius: 3px; box-shadow: inset 0 0 8px rgba(216, 180, 254, .35); }
+.mode-campaign { border-radius: 50% 50% 45% 45% !important; border-color: #fbbf24 !important; }
+.mode-campaign::before { content: ''; position: absolute; inset: 5px 8px 8px; border: 1px solid #fbbf24; transform: rotate(45deg); box-shadow: 0 0 10px rgba(251, 191, 36, .3); }
 .mode-choice span { display: grid; min-width: 0; gap: 2px; }
 .mode-choice strong { font-size: 9px; letter-spacing: .08em; }
 .mode-choice small { color: #64748b; font-size: 7px; line-height: 1.3; }
 .mode-choice b { position: absolute; top: 5px; right: 5px; padding: 3px 5px; border-radius: 999px; color: #d8b4fe; background: rgba(124, 58, 237, .16); font-size: 6px; letter-spacing: .08em; }
 .mode-choice.selected { border-color: rgba(56, 189, 248, .58); background: rgba(14, 116, 144, .14); }
 .mode-choice.cpu-choice.selected { border-color: rgba(216, 180, 254, .68); background: rgba(109, 40, 217, .14); }
+.mode-choice.campaign-choice.selected { border-color: rgba(251, 191, 36, .68); background: rgba(180, 83, 9, .16); }
 
-.difficulty-picker { display: none; }
+.difficulty-picker,
+.campaign-picker { display: none; }
 .difficulty-grid { grid-template-columns: repeat(3, 1fr); }
 .difficulty-choice {
   display: grid;
@@ -278,6 +285,25 @@ button {
 .lobby-shell[data-mode="cpu"] .identity-grid { grid-template-columns: 1fr; }
 .cpu-note { display: none; }
 .lobby-shell[data-mode="cpu"] .cpu-note { display: block; }
+.lobby-shell[data-mode="campaign"] .campaign-picker { display: block; }
+.lobby-shell[data-mode="campaign"] .online-only,
+.lobby-shell[data-mode="campaign"] .online-note,
+.lobby-shell[data-mode="campaign"] .cpu-note { display: none; }
+.lobby-shell[data-mode="campaign"] .identity-grid { grid-template-columns: 1fr; }
+.campaign-note { display: none; }
+.lobby-shell[data-mode="campaign"] .campaign-note { display: block; }
+
+.campaign-progress { display: flex; margin-bottom: 9px; align-items: center; justify-content: space-between; color: #64748b; font-size: 7px; letter-spacing: .1em; }
+.campaign-progress strong { color: #fbbf24; font-size: 9px; }
+.campaign-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.mission-choice { display: flex; min-height: 74px; padding: 10px; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid rgba(255,255,255,.09); border-radius: 11px; color: #e2e8f0; text-align: left; background: rgba(255,255,255,.03); cursor: pointer; }
+.mission-choice span { display: grid; min-width: 0; gap: 2px; }
+.mission-choice small { color: #fbbf24; font-size: 6px; letter-spacing: .08em; }
+.mission-choice strong { font-size: 9px; }
+.mission-choice em { color: #64748b; font-size: 6px; font-style: normal; line-height: 1.35; }
+.mission-choice b { flex: 0 0 auto; color: #fbbf24; font-size: 6px; letter-spacing: .05em; }
+.mission-choice.selected { border-color: rgba(251,191,36,.65); background: rgba(180,83,9,.14); box-shadow: inset 0 0 18px rgba(251,191,36,.04); }
+.mission-choice.locked { opacity: .42; cursor: not-allowed; }
 
 .identity-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; }
 .field-group { display: grid; min-width: 0; gap: 7px; color: #94a3b8; font-size: 9px; font-weight: 600; }

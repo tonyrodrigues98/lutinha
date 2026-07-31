@@ -13,7 +13,8 @@
     "test:cpu": "node --import tsx tests/cpu.mts",
     "test:equipment": "node --import tsx tests/equipment.mts",
     "test:balance": "node --import tsx tests/balance.mts",
-    "test:assets": "node --import tsx tests/assets.mts"
+    "test:assets": "node --import tsx tests/assets.mts",
+    "test:campaign": "node --import tsx tests/campaign.mts"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.3.0",

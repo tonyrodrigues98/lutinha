@@ -18,6 +18,19 @@ export interface WeaponProfile {
   knockback: number;
 }
 
+const MELEE_REACH: Partial<Record<WeaponId, number>> = {
+  fistweapon_A: 245, fistweapon_B: 245,
+  dagger: 270, dagger_A: 275, dagger_B: 285,
+  smokebomb: 290,
+  sword_A: 350, sword_B: 365, sword_C: 375, sword_D: 385, sword_E: 395,
+  sword_1handed: 370, Skeleton_Blade: 380,
+  axe_A: 375, axe_B: 390, axe_C: 405, axe_1handed: 395, Skeleton_Axe: 400,
+  hammer_A: 405, hammer_B: 420, hammer_C: 435,
+  sword_2handed: 455, sword_2handed_color: 455, axe_2handed: 470,
+  staff: 475, staff_A: 490, staff_B: 505, Skeleton_Staff: 500,
+  spear_A: 555, halberd: 575,
+};
+
 export const FIGHTER_STATS: Record<FighterSkin, FighterStats> = {
   mage: { speed: 0.94, jump: 1, dash: 0.96, damage: 0.92, defense: 1.06, energy: 0.95 },
   minion: { speed: 1.1, jump: 1.08, dash: 1.1, damage: 0.94, defense: 1.06, energy: 1.08 },
@@ -51,7 +64,7 @@ export const weaponProfile = (weapon: WeaponId): WeaponProfile => {
     || weapon === 'wand_A'
     || weapon.startsWith('spellbook_')
   ) {
-    return { range: 560, damage: 0.78, windup: 440, active: 720, recovery: 980, knockback: 210 };
+    return { range: MELEE_REACH[weapon] ?? 540, damage: 0.78, windup: 440, active: 720, recovery: 980, knockback: 210 };
   }
   if (
     weapon.startsWith('hammer_')
@@ -59,16 +72,16 @@ export const weaponProfile = (weapon: WeaponId): WeaponProfile => {
     || weapon === 'axe_2handed'
     || weapon.startsWith('sword_2handed')
   ) {
-    return { range: 420, damage: 1.28, windup: 245, active: 610, recovery: 760, knockback: 390 };
+    return { range: MELEE_REACH[weapon] ?? 450, damage: 1.28, windup: 245, active: 610, recovery: 760, knockback: 390 };
   }
   if (weapon === 'spear_A') {
-    return { range: 465, damage: 1.08, windup: 195, active: 520, recovery: 630, knockback: 315 };
+    return { range: MELEE_REACH[weapon] ?? 555, damage: 1.08, windup: 195, active: 520, recovery: 630, knockback: 315 };
   }
   if (weapon === 'dagger' || weapon.startsWith('dagger_') || weapon.startsWith('fistweapon_')) {
-    return { range: 365, damage: 0.86, windup: 95, active: 300, recovery: 350, knockback: 235 };
+    return { range: MELEE_REACH[weapon] ?? 270, damage: 0.86, windup: 95, active: 300, recovery: 350, knockback: 235 };
   }
   if (weapon.startsWith('axe_') || weapon === 'Skeleton_Axe') {
-    return { range: 390, damage: 1.14, windup: 175, active: 470, recovery: 570, knockback: 325 };
+    return { range: MELEE_REACH[weapon] ?? 390, damage: 1.14, windup: 175, active: 470, recovery: 570, knockback: 325 };
   }
-  return { range: 375, damage: 1, windup: 130, active: 390, recovery: 470, knockback: 280 };
+  return { range: MELEE_REACH[weapon] ?? 370, damage: 1, windup: 130, active: 390, recovery: 470, knockback: 280 };
 };

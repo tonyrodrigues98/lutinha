@@ -1,4 +1,5 @@
 import { FIGHTERS } from './assets';
+import { campaignMission } from './campaign';
 import { FIGHTER_STATS, weaponProfile } from './combatBalance';
 import type { GameClient } from './network';
 import type {
@@ -126,6 +127,9 @@ export class LocalCpuClient implements GameClient {
   private previousTick = 0;
   private nextCpuDecisionAt = 0;
   private difficulty: CpuDifficulty = 'warrior';
+  private campaignMode = false;
+  private campaignMissionId = 1;
+  private campaignCompleted = false;
 
   get connected(): boolean {
     return Boolean(this.interval);
@@ -135,14 +139,22 @@ export class LocalCpuClient implements GameClient {
     this.difficulty = difficulty;
   }
 
+  setCampaign(missionId?: number): void {
+    this.campaignMode = missionId !== undefined;
+    this.campaignMissionId = missionId ?? 1;
+    this.campaignCompleted = false;
+    if (missionId !== undefined) this.difficulty = campaignMission(missionId).difficulty;
+  }
+
   async join(payload: JoinPayload): Promise<JoinResult> {
     this.leave();
     const name = payload.name.trim().slice(0, 14);
     if (!name) return { ok: false, message: 'Escolha um nome para iniciar o treino.' };
 
     const cpuTeam: Team = payload.team === 'blue' ? 'red' : 'blue';
+    const mission = campaignMission(this.campaignMissionId);
     const choices = (Object.keys(FIGHTERS) as FighterSkin[]).filter((skin) => skin !== payload.skin);
-    const cpuSkin = choices[Math.floor(Math.random() * choices.length)] ?? 'warrior';
+    const cpuSkin = this.campaignMode ? mission.enemySkin : (choices[Math.floor(Math.random() * choices.length)] ?? 'warrior');
     const cpuKit = FIGHTERS[cpuSkin];
     const cpuColors: PlayerSnapshot['color'][] = ['crimson', 'violet', 'gold', 'emerald', 'silver'];
     const cpuNames: Record<CpuDifficulty, string> = {
@@ -155,16 +167,16 @@ export class LocalCpuClient implements GameClient {
       createFighter(LOCAL_ID, name, payload.team, payload.skin, payload.weapon, payload.shield, payload.color),
       createFighter(
         CPU_ID,
-        cpuNames[this.difficulty],
+        this.campaignMode ? mission.enemyName : cpuNames[this.difficulty],
         cpuTeam,
         cpuSkin,
-        cpuKit.defaultWeapon,
-        cpuKit.defaultShield,
+        this.campaignMode ? mission.enemyWeapon : cpuKit.defaultWeapon,
+        this.campaignMode ? mission.enemyShield : cpuKit.defaultShield,
         cpuColors[Math.floor(Math.random() * cpuColors.length)] ?? 'crimson',
       ),
     ].sort((a, b) => a.team === 'blue' ? -1 : b.team === 'blue' ? 1 : 0);
-    this.arena = payload.arena;
-    this.roomCode = 'TREINO OFFLINE';
+    this.arena = this.campaignMode ? mission.arena : payload.arena;
+    this.roomCode = this.campaignMode ? `CAMPANHA · MISSÃO ${mission.id}` : 'TREINO OFFLINE';
     this.round = 1;
     this.hitCounter = 0;
     this.lastHit = undefined;
@@ -284,6 +296,14 @@ export class LocalCpuClient implements GameClient {
       roundWinnerId: this.roundWinnerId,
       serverTime: now,
       hit: this.lastHit,
+      campaign: this.campaignMode ? {
+        missionId: campaignMission(this.campaignMissionId).id,
+        act: campaignMission(this.campaignMissionId).act,
+        title: campaignMission(this.campaignMissionId).title,
+        objective: campaignMission(this.campaignMissionId).objective,
+        reward: campaignMission(this.campaignMissionId).reward,
+        completed: this.campaignCompleted,
+      } : undefined,
     };
   }
 
@@ -479,6 +499,17 @@ export class LocalCpuClient implements GameClient {
     if (matchWinner) {
       this.status = 'matchover';
       this.winnerId = matchWinner.id;
+      if (this.campaignMode && matchWinner.id === LOCAL_ID) {
+        this.campaignCompleted = true;
+        if (typeof localStorage !== 'undefined') {
+          const unlocked = Math.max(Number(localStorage.getItem('riftfall-campaign-unlocked') || 1), Math.min(6, this.campaignMissionId + 1));
+          localStorage.setItem('riftfall-campaign-unlocked', String(unlocked));
+          const victories = Number(localStorage.getItem('riftfall-campaign-victories') || 0) + 1;
+          localStorage.setItem('riftfall-campaign-victories', String(victories));
+          const runes = Number(localStorage.getItem('riftfall-campaign-runes') || 0) + campaignMission(this.campaignMissionId).reward;
+          localStorage.setItem('riftfall-campaign-runes', String(runes));
+        }
+      }
       this.phaseEndsAt = now + 6_000;
     } else {
       this.status = 'roundover';
@@ -512,7 +543,7 @@ export class LocalCpuClient implements GameClient {
       this.round += 1;
       this.resetPositions();
       this.beginCountdown(now);
-    } else if (this.status === 'matchover' && now >= this.phaseEndsAt) {
+    } else if (this.status === 'matchover' && now >= this.phaseEndsAt && !this.campaignMode) {
       for (const player of this.players) player.wins = 0;
       this.round = 1;
       this.resetPositions();

@@ -4,6 +4,7 @@ import '@fontsource/poppins/600.css';
 import '@fontsource/poppins/700.css';
 import '@fontsource/poppins/800.css';
 import { FIGHTERS, AssetVault, SHIELD_LABELS, WEAPON_LABELS, weaponClass } from './game/assets';
+import { CAMPAIGN_MISSIONS } from './game/campaign';
 import { LocalCpuClient, type CpuDifficulty } from './game/localCpu';
 import { NetworkClient, type GameClient } from './game/network';
 import { ThreeFightRenderer } from './game/ThreeFightRenderer';
@@ -31,8 +32,10 @@ const $ = <T extends HTMLElement>(selector: string): T => {
 const network = new NetworkClient();
 const cpu = new LocalCpuClient();
 const vault = new AssetVault();
-let selectedMode: 'online' | 'cpu' = 'online';
+type GameMode = 'online' | 'cpu' | 'campaign';
+let selectedMode: GameMode = 'online';
 let selectedDifficulty: CpuDifficulty = 'warrior';
+let selectedMission = 1;
 let activeClient: GameClient = network;
 let selectedTeam: Team = 'blue';
 let selectedFighter: FighterSkin = 'mage';
@@ -71,6 +74,7 @@ const comboIndicator = $('#combo-indicator');
 const comboCountLabel = $('#combo-count');
 const motionButton = $('#motion-button') as HTMLButtonElement;
 const modeState = $('#mode-state');
+const campaignProgress = $('#campaign-progress');
 let unsubscribeSnapshot: (() => void) | undefined;
 let unsubscribeConnection: (() => void) | undefined;
 
@@ -213,6 +217,32 @@ SHIELD_IDS.forEach((shield) => {
   shieldGrid.append(button);
 });
 
+const campaignGrid = $('#campaign-grid');
+const campaignUnlocked = (): number => Math.max(1, Math.min(6, Number(localStorage.getItem('riftfall-campaign-unlocked') || 1)));
+function renderCampaign(): void {
+  const unlocked = campaignUnlocked();
+  if (selectedMission > unlocked) selectedMission = unlocked;
+  campaignProgress.textContent = `${unlocked} / ${CAMPAIGN_MISSIONS.length}`;
+  campaignGrid.innerHTML = '';
+  CAMPAIGN_MISSIONS.forEach((mission) => {
+    const button = document.createElement('button');
+    const locked = mission.id > unlocked;
+    button.type = 'button';
+    button.className = `mission-choice${mission.id === selectedMission ? ' selected' : ''}${locked ? ' locked' : ''}`;
+    button.disabled = locked;
+    button.setAttribute('aria-pressed', String(mission.id === selectedMission));
+    button.innerHTML = `<span><small>${mission.act} · MISSÃO ${mission.id}</small><strong>${mission.title}</strong><em>${mission.objective}</em></span><b>${locked ? 'BLOQUEADA' : `${mission.reward} RUNAS`}</b>`;
+    button.addEventListener('click', () => {
+      selectedMission = mission.id;
+      localStorage.setItem('riftfall-campaign-mission', String(mission.id));
+      renderCampaign();
+    });
+    campaignGrid.append(button);
+  });
+}
+selectedMission = Math.min(campaignUnlocked(), Number(localStorage.getItem('riftfall-campaign-mission') || 1));
+renderCampaign();
+
 const queryRoom = new URLSearchParams(location.search).get('room');
 roomInput.value = sanitizeRoomName(queryRoom || '', true) || generateRoomName();
 nameInput.value = localStorage.getItem('riftfall-player-name') || '';
@@ -253,10 +283,11 @@ document.querySelectorAll<HTMLButtonElement>('.arena-choice').forEach((button) =
 
 document.querySelectorAll<HTMLButtonElement>('.mode-choice').forEach((button) => {
   button.addEventListener('click', () => {
-    selectedMode = button.dataset.mode as 'online' | 'cpu';
+    selectedMode = button.dataset.mode as GameMode;
     lobby.dataset.mode = selectedMode;
     selectButtons('.mode-choice', selectedMode, 'mode');
-    joinButton.querySelector('span')!.textContent = selectedMode === 'cpu' ? 'LUTAR CONTRA CPU' : 'ENTRAR NA ARENA';
+    joinButton.querySelector('span')!.textContent = selectedMode === 'cpu' ? 'LUTAR CONTRA CPU' : selectedMode === 'campaign' ? 'INICIAR MISSÃO' : 'ENTRAR NA ARENA';
+    if (selectedMode === 'campaign') renderCampaign();
     lobbyError.textContent = '';
   });
 });
@@ -296,13 +327,16 @@ joinForm.addEventListener('submit', async (event) => {
   void enterImmersiveMode();
   lobbyError.textContent = '';
   joinButton.disabled = true;
-  joinButton.querySelector('span')!.textContent = selectedMode === 'cpu' ? 'PREPARANDO CPU...' : 'CONECTANDO...';
+  joinButton.querySelector('span')!.textContent = selectedMode === 'online' ? 'CONECTANDO...' : selectedMode === 'campaign' ? 'PREPARANDO MISSÃO...' : 'PREPARANDO CPU...';
 
   const name = nameInput.value.trim();
   const roomCode = sanitizeRoomName(roomInput.value, true);
   roomInput.value = roomCode;
-  activeClient = selectedMode === 'cpu' ? cpu : network;
-  if (selectedMode === 'cpu') cpu.setDifficulty(selectedDifficulty);
+  activeClient = selectedMode === 'online' ? network : cpu;
+  if (selectedMode === 'cpu') {
+    cpu.setCampaign();
+    cpu.setDifficulty(selectedDifficulty);
+  } else if (selectedMode === 'campaign') cpu.setCampaign(selectedMission);
   bindActiveClient();
   const result = await activeClient.join({
     name,
@@ -317,15 +351,16 @@ joinForm.addEventListener('submit', async (event) => {
   if (!result.ok) {
     lobbyError.textContent = result.message || 'Não foi possível entrar na arena.';
     joinButton.disabled = false;
-    joinButton.querySelector('span')!.textContent = selectedMode === 'cpu' ? 'LUTAR CONTRA CPU' : 'ENTRAR NA ARENA';
+    joinButton.querySelector('span')!.textContent = selectedMode === 'cpu' ? 'LUTAR CONTRA CPU' : selectedMode === 'campaign' ? 'INICIAR MISSÃO' : 'ENTRAR NA ARENA';
     return;
   }
 
   localStorage.setItem('riftfall-player-name', name);
   if (selectedMode === 'online') history.replaceState(null, '', roomInviteUrl(result.roomCode || roomCode));
   document.body.classList.add('game-active');
-  document.body.classList.toggle('cpu-mode', selectedMode === 'cpu');
-  modeState.textContent = selectedMode === 'cpu' ? `OFFLINE · ${selectedDifficulty === 'apprentice' ? 'APRENDIZ' : selectedDifficulty === 'warrior' ? 'GUERREIRO' : 'PESADELO'}` : 'ONLINE';
+  document.body.classList.toggle('cpu-mode', selectedMode !== 'online');
+  document.body.classList.toggle('campaign-mode', selectedMode === 'campaign');
+  modeState.textContent = selectedMode === 'campaign' ? `CAMPANHA · MISSÃO ${selectedMission}` : selectedMode === 'cpu' ? `OFFLINE · ${selectedDifficulty === 'apprentice' ? 'APRENDIZ' : selectedDifficulty === 'warrior' ? 'GUERREIRO' : 'PESADELO'}` : 'ONLINE';
   lobby.classList.add('hidden');
   gameShell.classList.remove('hidden');
   game ??= new ThreeFightRenderer($('#game-canvas'), activeClient, vault);
@@ -454,7 +489,7 @@ function updateHud(snapshot: MatchSnapshot): void {
   const local = snapshot.players.find((player) => player.id === activeClient.id);
   updateFighterHud('blue', blue);
   updateFighterHud('red', red);
-  $('#round-label').textContent = `RODADA ${snapshot.round}`;
+  $('#round-label').textContent = snapshot.campaign ? `MISSÃO ${snapshot.campaign.missionId} · RODADA ${snapshot.round}` : `RODADA ${snapshot.round}`;
   $('#round-timer').textContent = String(snapshot.timeLeft).padStart(2, '0');
   specialButton.classList.toggle('ready', Boolean(local && local.energy >= 100));
 
@@ -479,8 +514,8 @@ function updateHud(snapshot: MatchSnapshot): void {
   } else {
     const winner = snapshot.players.find((player) => player.id === snapshot.winnerId);
     banner.classList.add('visible');
-    bannerKicker.textContent = 'CAMPEÃO DA CRIPTA';
-    bannerTitle.textContent = winner?.name.toUpperCase() || 'FIM DA LUTA';
+    bannerKicker.textContent = snapshot.campaign ? (snapshot.campaign.completed ? `MISSÃO CONCLUÍDA · +${snapshot.campaign.reward} RUNAS` : 'MISSÃO FRACASSADA') : 'CAMPEÃO DA CRIPTA';
+    bannerTitle.textContent = snapshot.campaign?.completed ? snapshot.campaign.title.toUpperCase() : winner?.name.toUpperCase() || 'FIM DA LUTA';
     shareButton.classList.add('hidden');
   }
 }

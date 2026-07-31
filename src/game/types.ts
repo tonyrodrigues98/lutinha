@@ -141,6 +141,14 @@ export interface MatchSnapshot {
   roundWinnerId?: string;
   serverTime: number;
   hit?: HitEvent;
+  campaign?: {
+    missionId: number;
+    act: string;
+    title: string;
+    objective: string;
+    reward: number;
+    completed: boolean;
+  };
 }
 
 export interface JoinPayload {
