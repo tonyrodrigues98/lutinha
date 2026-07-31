@@ -5,3 +5,4 @@ dist/
 *.log
 riftfall-duel.zip
 generated_images/
+.asset-source/

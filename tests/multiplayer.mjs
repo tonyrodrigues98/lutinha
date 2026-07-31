@@ -102,14 +102,25 @@ try {
   if (!healthResponse.ok || !(await healthResponse.json()).ok) throw new Error('Health check falhou');
   if (!pageResponse.ok || !(await pageResponse.text()).includes('RIFTFALL')) throw new Error('Frontend de produção não foi servido');
 
-  await join(blue, { roomCode, name: 'Azul Teste', team: 'blue', skin: 'astra', color: 'emerald', arena: 'ember' });
+  await join(blue, {
+    roomCode,
+    name: 'Azul Teste',
+    team: 'blue',
+    skin: 'rogue',
+    color: 'emerald',
+    weapon: 'dagger_B',
+    shield: 'none',
+    arena: 'ember',
+  });
   const duplicateTeam = await new Promise((resolve, reject) => {
     red.timeout(5_000).emit('joinMatch', {
       roomCode,
       name: 'Azul Intruso',
       team: 'blue',
-      skin: 'kael',
+      skin: 'mage',
       color: 'violet',
+      weapon: 'Skeleton_Staff',
+      shield: 'none',
       arena: 'neon',
     }, (error, result) => {
       if (error) reject(error);
@@ -117,11 +128,22 @@ try {
     });
   });
   if (duplicateTeam.ok || !duplicateTeam.message.includes('já foi escolhido')) throw new Error('Reserva de time não foi respeitada');
-  await join(red, { roomCode, name: 'Vermelho Teste', team: 'red', skin: 'kael', color: 'gold', arena: 'astral' });
+  await join(red, {
+    roomCode,
+    name: 'Vermelho Teste',
+    team: 'red',
+    skin: 'warrior',
+    color: 'gold',
+    weapon: 'Skeleton_Axe',
+    shield: 'Skeleton_Shield_Large_A',
+    arena: 'astral',
+  });
   const fighting = await waitForState((snapshot) => snapshot.status === 'fighting', 8_000);
   if (fighting.roomCode !== roomCode) throw new Error('Caracteres livres do nome da sala não foram preservados');
   if (fighting.arena !== 'ember') throw new Error('A arena do criador da sala não foi preservada');
   if (!fighting.players.some((player) => player.color === 'emerald')) throw new Error('A cor personalizada não foi sincronizada');
+  if (!fighting.players.some((player) => player.weapon === 'dagger_B')) throw new Error('A arma equipada não foi sincronizada');
+  if (!fighting.players.some((player) => player.shield === 'Skeleton_Shield_Large_A')) throw new Error('O escudo equipado não foi sincronizado');
   const blueStartX = fighting.players.find((player) => player.team === 'blue').x;
 
   input(blue, { right: true, dash: true }, 1);
@@ -138,7 +160,7 @@ try {
   const approached = await waitForState((snapshot) => {
     const a = snapshot.players.find((player) => player.team === 'blue');
     const b = snapshot.players.find((player) => player.team === 'red');
-    return a && b && Math.abs(a.x - b.x) < 180;
+    return a && b && Math.abs(a.x - b.x) < 370;
   }, 3_000);
 
   const redBefore = approached.players.find((player) => player.team === 'red').health;
@@ -154,7 +176,7 @@ try {
   const reapproached = await waitForState((snapshot) => {
     const a = snapshot.players.find((player) => player.team === 'blue');
     const b = snapshot.players.find((player) => player.team === 'red');
-    return a && b && Math.abs(a.x - b.x) < 180;
+    return a && b && Math.abs(a.x - b.x) < 370;
   }, 3_000);
   input(blue, {}, 8);
   input(red, {}, 4);
@@ -177,7 +199,7 @@ try {
     roomCode,
     status: kickHit.status,
     dashDistance: Math.round(dashed.players.find((player) => player.team === 'blue').x - blueStartX),
-    punchDamage: redBefore - redAfter,
+    weaponDamage: redBefore - redAfter,
     kickDamage: kickBefore - kickAfter,
     hitKind: kickHit.hit?.kind,
   }, null, 2));

@@ -1,5 +1,5 @@
 {
-  "name": "riftfall-duel",
+  "name": "riftfall-arsenal",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -13,10 +13,11 @@
   },
   "dependencies": {
     "@fontsource/poppins": "^5.3.0",
+    "@types/three": "^0.185.1",
     "express": "^5.2.1",
-    "phaser": "^3.90.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
+    "three": "^0.185.1",
     "tsx": "^4.23.1"
   },
   "devDependencies": {

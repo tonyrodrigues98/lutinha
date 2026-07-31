@@ -1,20 +1,28 @@
-# Riftfall Duel
+# Riftfall Arsenal
 
-Jogo de luta 2D online, mobile-first, para dois jogadores. Cada pessoa entra na mesma sala por um nome livre — inclusive com espaços, acentos, emojis e símbolos — e escolhe um lado diferente: azul ou vermelho.
+Jogo de luta 3D online, mobile-first, para duas pessoas. Os jogadores entram na mesma sala, escolhem equipes opostas e montam um personagem com assets KayKit reais.
 
-## O que já funciona
+## O que funciona
 
-- multiplayer real com Socket.IO e salas privadas por nome;
-- servidor autoritativo para movimento, gravidade, colisão, dano e placar;
-- câmera individual seguindo e centralizando o personagem local;
-- controles multitouch: esquerda, direita, salto, defesa, ataque e especial;
-- teclado no desktop: `A/D`, `W` ou `Espaço`, `J`, `K` e `L`;
-- dois lutadores originais ilustrados, Astra Nyx e Kael Forge, com sprites transparentes e estados de entrada, idle, corrida, salto, ataque, especial, defesa, dano, nocaute e vitória;
-- arena original em alta resolução, partículas, impacto, screen shake, som sintético e vibração;
-- 12 cores de energia, quatro arenas, indicador de combo e modo de movimento reduzido;
-- melhor de três, rodadas de 60 segundos e reinício automático;
-- PWA instalável e preparada para tela cheia em modo paisagem;
-- deploy pronto por Docker/Render.
+- multiplayer real com Socket.IO e servidor autoritativo;
+- quatro personagens 3D selecionáveis;
+- 26 armas e sete escudos sincronizados;
+- armas presas aos bones das mãos durante todas as animações;
+- combate diferente por arma: leve, uma mão, pesado, lança, arco, besta ou magia;
+- mais de 100 clips KayKit carregados no boot;
+- câmera individual centralizada no personagem local;
+- movimento, dash, salto, defesa, ataque, chute e especial multitouch;
+- quatro arenas, 12 cores de essência e melhor de três;
+- loading inicial com progresso real e cache PWA;
+- sala por nome livre, inclusive espaços, acentos, emojis e símbolos;
+- Docker e Render prontos para deploy.
+
+## Stack
+
+- TypeScript + Vite
+- Three.js para cena, modelos, iluminação e animações
+- Socket.IO para sincronização
+- Express para produção
 
 ## Rodar localmente
 
@@ -25,9 +33,7 @@ npm install
 npm run dev
 ```
 
-Abra `http://localhost:5173` em duas abas. Entre nas duas com o mesmo nome de sala, escolhendo azul em uma e vermelho na outra.
-
-Para testar em dois celulares na mesma rede Wi-Fi, abra `http://IP-DO-COMPUTADOR:5173` nos dois aparelhos. O firewall do computador precisa permitir as portas 5173 e 3001.
+Abra `http://localhost:5173` em duas abas. Use o mesmo nome de sala e equipes diferentes.
 
 ## Produção
 
@@ -36,10 +42,4 @@ npm run build
 npm start
 ```
 
-O servidor usa a porta informada em `PORT` e entrega tanto o jogo compilado quanto a conexão WebSocket. Não é necessário banco de dados para partidas efêmeras.
-
-No Render, crie um Web Service a partir deste repositório e use o Dockerfile. O arquivo `render.yaml` já contém a configuração mínima.
-
-## Protocolo da partida
-
-O cliente envia somente a intenção dos controles. O servidor mantém a fonte de verdade da luta em 60 atualizações por segundo e distribui snapshots 20 vezes por segundo. Essa separação reduz divergências entre aparelhos e dificulta alterações simples de vida, energia ou posição feitas pelo navegador.
+O servidor usa `PORT` e entrega o frontend e o WebSocket no mesmo endereço.

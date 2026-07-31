@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { Server } from 'socket.io';
+import { SHIELD_IDS, WEAPON_IDS } from '../src/game/types.js';
 import type {
   ArenaTheme,
   AttackKind,
@@ -16,7 +17,9 @@ import type {
   MatchStatus,
   PlayerInput,
   PlayerSnapshot,
+  ShieldId,
   Team,
+  WeaponId,
 } from '../src/game/types.js';
 
 const PORT = Number(process.env.PORT || 3001);
@@ -33,8 +36,39 @@ const FIGHTER_STATS: Record<FighterSkin, {
   defense: number;
   energy: number;
 }> = {
-  astra: { speed: 1.12, jump: 1.08, dash: 1.16, damage: 0.96, defense: 1.04, energy: 1.12 },
-  kael: { speed: 0.9, jump: 0.92, dash: 0.92, damage: 1.16, defense: 0.9, energy: 0.92 },
+  mage: { speed: 0.96, jump: 1, dash: 1, damage: 1.06, defense: 1.03, energy: 1.18 },
+  minion: { speed: 1.1, jump: 1.08, dash: 1.1, damage: 0.94, defense: 1.06, energy: 1.08 },
+  rogue: { speed: 1.15, jump: 1.06, dash: 1.16, damage: 0.98, defense: 1.08, energy: 1.1 },
+  warrior: { speed: 0.88, jump: 0.92, dash: 0.9, damage: 1.16, defense: 0.88, energy: 0.92 },
+};
+
+const weaponProfile = (weapon: WeaponId): {
+  range: number;
+  damage: number;
+  windup: number;
+  active: number;
+  recovery: number;
+  knockback: number;
+} => {
+  if (weapon.startsWith('bow_') || weapon === 'Skeleton_Crossbow') {
+    return { range: 900, damage: 0.9, windup: 330, active: 620, recovery: 760, knockback: 250 };
+  }
+  if (weapon.includes('Staff') || weapon.startsWith('staff_') || weapon === 'wand_A') {
+    return { range: 720, damage: 1.02, windup: 300, active: 650, recovery: 780, knockback: 310 };
+  }
+  if (weapon.startsWith('hammer_') || weapon === 'halberd') {
+    return { range: 420, damage: 1.28, windup: 245, active: 610, recovery: 760, knockback: 390 };
+  }
+  if (weapon === 'spear_A') {
+    return { range: 465, damage: 1.08, windup: 195, active: 520, recovery: 630, knockback: 315 };
+  }
+  if (weapon.startsWith('dagger_') || weapon.startsWith('fistweapon_')) {
+    return { range: 365, damage: 0.86, windup: 95, active: 300, recovery: 350, knockback: 235 };
+  }
+  if (weapon.startsWith('axe_') || weapon === 'Skeleton_Axe') {
+    return { range: 390, damage: 1.14, windup: 175, active: 470, recovery: 570, knockback: 325 };
+  }
+  return { range: 375, damage: 1, windup: 130, active: 390, recovery: 470, knockback: 280 };
 };
 
 interface FighterState {
@@ -43,6 +77,8 @@ interface FighterState {
   team: Team;
   skin: FighterSkin;
   color: FighterColor;
+  weapon: WeaponId;
+  shield: ShieldId;
   x: number;
   y: number;
   vx: number;
@@ -124,12 +160,22 @@ const createRoom = (code: string, arena: ArenaTheme): RoomState => ({
   snapshotCounter: 0,
 });
 
-const createFighter = (id: string, name: string, team: Team, skin: FighterSkin, color: FighterColor): FighterState => ({
+const createFighter = (
+  id: string,
+  name: string,
+  team: Team,
+  skin: FighterSkin,
+  color: FighterColor,
+  weapon: WeaponId,
+  shield: ShieldId,
+): FighterState => ({
   id,
   name,
   team,
   skin,
   color,
+  weapon,
+  shield,
   x: team === 'blue' ? 720 : 1480,
   y: WORLD.groundY,
   vx: 0,
@@ -161,7 +207,7 @@ const cleanRoomName = (value: unknown) => Array.from(
 const roomChannel = (roomName: string) => `riftfall:room:${roomName}`;
 const cleanName = (value: unknown) => String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 14);
 const cleanSkin = (value: unknown): FighterSkin | undefined => (
-  ['astra', 'kael'] as FighterSkin[]
+  ['mage', 'minion', 'rogue', 'warrior'] as FighterSkin[]
 ).find((skin) => skin === value);
 const cleanColor = (value: unknown): FighterColor | undefined => (
   ['azure', 'crimson', 'emerald', 'violet', 'gold', 'fuchsia', 'cyan', 'lime', 'orange', 'ice', 'coral', 'silver'] as FighterColor[]
@@ -169,6 +215,8 @@ const cleanColor = (value: unknown): FighterColor | undefined => (
 const cleanArena = (value: unknown): ArenaTheme | undefined => (
   ['riftfall', 'ember', 'neon', 'astral'] as ArenaTheme[]
 ).find((arena) => arena === value);
+const cleanWeapon = (value: unknown): WeaponId | undefined => WEAPON_IDS.find((weapon) => weapon === value);
+const cleanShield = (value: unknown): ShieldId | undefined => SHIELD_IDS.find((shield) => shield === value);
 
 function beginCountdown(room: RoomState, now = Date.now()): void {
   room.status = 'countdown';
@@ -216,6 +264,8 @@ function makeSnapshot(room: RoomState, now: number): MatchSnapshot {
     team: player.team,
     skin: player.skin,
     color: player.color,
+    weapon: player.weapon,
+    shield: player.shield,
     x: Math.round(player.x * 10) / 10,
     y: Math.round(player.y * 10) / 10,
     vx: Math.round(player.vx),
@@ -274,10 +324,11 @@ function startAttack(player: FighterState, kind: AttackKind, now: number): void 
     player.attackUntil = now + 480;
     player.attackReadyAt = now + 610;
   } else {
+    const profile = weaponProfile(player.weapon);
     player.attackKind = 'attack';
-    player.attackHitAt = now + 120;
-    player.attackUntil = now + 360;
-    player.attackReadyAt = now + 440;
+    player.attackHitAt = now + profile.windup;
+    player.attackUntil = now + profile.active;
+    player.attackReadyAt = now + profile.recovery;
   }
   player.attackResolved = false;
   player.vx *= 0.25;
@@ -292,19 +343,25 @@ function resolveAttack(room: RoomState, attacker: FighterState, now: number): vo
   const kind = attacker.attackKind;
   const special = kind === 'special';
   const kick = kind === 'kick';
+  const profile = weaponProfile(attacker.weapon);
   const distance = Math.abs(target.x - attacker.x);
   const verticalDistance = Math.abs(target.y - attacker.y);
   const inFront = (target.x - attacker.x) * attacker.facing > -25;
-  const range = special ? 245 : kick ? 188 : 158;
+  const range = special ? Math.max(440, profile.range * 1.15) : kick ? 365 : profile.range;
   if (distance > range || verticalDistance > (kick ? 165 : 145) || !inFront) return;
 
   const targetFacingAttack = (attacker.x - target.x) * target.facing > 0;
   const blocked = target.input.block && target.grounded && targetFacingAttack;
   const attackerStats = FIGHTER_STATS[attacker.skin];
   const targetStats = FIGHTER_STATS[target.skin];
-  const baseDamage = blocked ? (special ? 5 : kick ? 3 : 2) : (special ? 20 : kick ? 13 : 9);
-  const damage = Math.max(1, Math.round(baseDamage * attackerStats.damage * targetStats.defense));
-  const knockback = blocked ? (special ? 160 : kick ? 105 : 70) : (special ? 520 : kick ? 380 : 280);
+  const baseDamage = blocked
+    ? (special ? 5 : kick ? 3 : 2)
+    : (special ? 20 * profile.damage : kick ? 13 : 9 * profile.damage);
+  const shieldDefense = target.shield === 'none' ? 1 : 0.88;
+  const damage = Math.max(1, Math.round(baseDamage * attackerStats.damage * targetStats.defense * (blocked ? shieldDefense : 1)));
+  const knockback = blocked
+    ? (special ? 160 : kick ? 105 : 70)
+    : (special ? 520 : kick ? 380 : profile.knockback);
 
   target.health = Math.max(0, target.health - damage);
   target.vx = attacker.facing * knockback;
@@ -390,7 +447,7 @@ function separateFighters(players: FighterState[]): void {
   const [a, b] = players;
   if (Math.abs(a.y - b.y) > 110) return;
   const delta = b.x - a.x;
-  const overlap = 82 - Math.abs(delta);
+  const overlap = 340 - Math.abs(delta);
   if (overlap <= 0) return;
   const direction = delta >= 0 ? 1 : -1;
   a.x -= direction * overlap * 0.5;
@@ -485,9 +542,11 @@ io.on('connection', (socket) => {
     const team = rawPayload?.team;
     const skin = cleanSkin(rawPayload?.skin);
     const color = cleanColor(rawPayload?.color);
+    const weapon = cleanWeapon(rawPayload?.weapon);
+    const shield = cleanShield(rawPayload?.shield);
     const arena = cleanArena(rawPayload?.arena);
 
-    if (!roomCode || !name || !skin || !color || !arena || (team !== 'blue' && team !== 'red')) {
+    if (!roomCode || !name || !skin || !color || !weapon || !shield || !arena || (team !== 'blue' && team !== 'red')) {
       acknowledge({ ok: false, message: 'Confira seu nome, o nome da sala e as opções de personalização.' });
       return;
     }
@@ -509,7 +568,7 @@ io.on('connection', (socket) => {
     }
 
     rooms.set(roomCode, room);
-    room.players.set(socket.id, createFighter(socket.id, name, team, skin, color));
+    room.players.set(socket.id, createFighter(socket.id, name, team, skin, color, weapon, shield));
     socket.data.roomCode = roomCode;
     socket.join(roomChannel(roomCode));
     acknowledge({ ok: true, roomCode });

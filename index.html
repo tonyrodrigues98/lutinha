@@ -3,182 +3,184 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no, shrink-to-fit=no" />
-    <meta name="theme-color" content="#070b16" />
+    <meta name="theme-color" content="#07090d" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="description" content="Riftfall Duel, um jogo de luta online para dois jogadores." />
+    <meta name="description" content="Riftfall Arsenal, combate 3D online para dois jogadores." />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icon.svg" />
     <link rel="stylesheet" href="/src/style.css" />
-    <title>Riftfall Duel</title>
+    <title>Riftfall Arsenal</title>
   </head>
   <body>
     <main id="app">
-      <section id="lobby" class="lobby-shell" data-arena="riftfall">
-        <div class="lobby-atmosphere"></div>
+      <section id="boot-screen" class="boot-screen" aria-live="polite">
+        <div class="boot-rune" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="eyebrow">PREPARANDO A CRIPTA</span>
+        <h1>RIFTFALL</h1>
+        <p id="boot-label">Abrindo o arsenal...</p>
+        <div class="boot-track"><i id="boot-progress"></i></div>
+        <strong id="boot-percent">0%</strong>
+        <small>Personagens, animações e armas serão carregados agora para a luta não pausar depois.</small>
+      </section>
+
+      <section id="lobby" class="lobby-shell hidden" data-arena="riftfall">
+        <div class="lobby-backdrop"></div>
         <header class="brand-block">
-          <span class="eyebrow">COMBATE ONLINE 1 × 1</span>
+          <span class="eyebrow">DUELO 3D ONLINE · 1 × 1</span>
           <h1>RIFTFALL</h1>
-          <p>Escolha seu lado. Convide seu rival. Domine a arena.</p>
+          <p>Monte seu guerreiro. Equipe o arsenal. Desafie um rival.</p>
+          <div class="pack-stats">
+            <span><strong>4</strong> PERSONAGENS</span>
+            <span><strong>26</strong> ARMAS</span>
+            <span><strong>100+</strong> ANIMAÇÕES</span>
+          </div>
         </header>
 
         <form id="join-form" class="join-card">
-          <div class="field-group">
-            <label for="player-name">Seu nome</label>
-            <input id="player-name" name="playerName" maxlength="14" autocomplete="nickname" placeholder="Lutador" required />
+          <div class="card-heading">
+            <span>CONFIGURAÇÃO DO LUTADOR</span>
+            <strong>01</strong>
           </div>
 
-          <div class="field-group room-field">
-            <label for="room-code">Nome da sala</label>
-            <div class="input-action">
-              <input id="room-code" name="roomCode" maxlength="48" inputmode="text" autocapitalize="sentences" autocomplete="off" placeholder="Ex.: Arena do Tony ⚡" required />
-              <button id="new-room" class="mini-button" type="button" aria-label="Gerar novo nome de sala">NOVA</button>
-            </div>
+          <div class="identity-grid">
+            <label class="field-group" for="player-name">
+              <span>Seu nome</span>
+              <input id="player-name" name="playerName" maxlength="14" autocomplete="nickname" placeholder="Lutador" required />
+            </label>
+            <label class="field-group room-field" for="room-code">
+              <span>Nome da sala</span>
+              <span class="input-action">
+                <input id="room-code" name="roomCode" maxlength="48" inputmode="text" autocapitalize="sentences" autocomplete="off" placeholder="Arena do Tony ⚔" required />
+                <button id="new-room" class="mini-button" type="button">NOVA</button>
+              </span>
+            </label>
           </div>
 
-          <fieldset class="team-picker">
-            <legend>Escolha seu time</legend>
+          <fieldset class="picker team-picker">
+            <legend>Juramento de equipe</legend>
             <div class="team-grid">
               <button class="team-choice blue selected" type="button" data-team="blue" aria-pressed="true">
-                <span class="team-emblem">B</span>
-                <span><strong>AZUL</strong><small>Guardião da tormenta</small></span>
+                <i></i><span><strong>AZUL</strong><small>Ordem glacial</small></span>
               </button>
               <button class="team-choice red" type="button" data-team="red" aria-pressed="false">
-                <span class="team-emblem">R</span>
-                <span><strong>VERMELHO</strong><small>Executor da fenda</small></span>
+                <i></i><span><strong>VERMELHO</strong><small>Legião rubra</small></span>
               </button>
             </div>
           </fieldset>
 
-          <fieldset class="fighter-picker">
-            <legend>Escolha seu personagem</legend>
+          <fieldset class="picker fighter-picker">
+            <legend>Escolha o personagem</legend>
             <div class="fighter-grid">
-              <button class="fighter-choice selected" type="button" data-fighter="astra" aria-pressed="true">
-                <span class="fighter-portrait astra-portrait" role="img" aria-label="Astra Nyx"></span>
-                <span class="fighter-copy"><strong>ASTRA NYX</strong><small>Ágil · Energia elétrica</small></span>
-                <span class="fighter-trait">VEL</span>
+              <button class="fighter-choice selected" type="button" data-fighter="mage" aria-pressed="true">
+                <img src="/assets/kaykit/portraits/mage.webp" alt="Necromante" />
+                <span><strong>NECROMANTE</strong><small>Magia · alcance</small></span>
               </button>
-              <button class="fighter-choice" type="button" data-fighter="kael" aria-pressed="false">
-                <span class="fighter-portrait kael-portrait" role="img" aria-label="Kael Forge"></span>
-                <span class="fighter-copy"><strong>KAEL FORGE</strong><small>Pesado · Punhos vulcânicos</small></span>
-                <span class="fighter-trait">FOR</span>
+              <button class="fighter-choice" type="button" data-fighter="minion" aria-pressed="false">
+                <img src="/assets/kaykit/portraits/minion.webp" alt="Rastejante" />
+                <span><strong>RASTEJANTE</strong><small>Ágil · imprevisível</small></span>
+              </button>
+              <button class="fighter-choice" type="button" data-fighter="rogue" aria-pressed="false">
+                <img src="/assets/kaykit/portraits/rogue.webp" alt="Lâmina Sombria" />
+                <span><strong>LÂMINA</strong><small>Duas armas · veloz</small></span>
+              </button>
+              <button class="fighter-choice" type="button" data-fighter="warrior" aria-pressed="false">
+                <img src="/assets/kaykit/portraits/warrior.webp" alt="Guardião Ósseo" />
+                <span><strong>GUARDIÃO</strong><small>Pesado · resistente</small></span>
               </button>
             </div>
           </fieldset>
 
-          <fieldset class="color-picker">
-            <legend>Cor do lutador</legend>
+          <fieldset class="picker weapon-picker">
+            <legend>Arma equipada</legend>
+            <div id="weapon-grid" class="weapon-grid"></div>
+          </fieldset>
+
+          <fieldset class="picker shield-picker">
+            <legend>Defesa secundária</legend>
+            <div id="shield-grid" class="shield-grid"></div>
+          </fieldset>
+
+          <fieldset class="picker color-picker">
+            <legend>Cor da essência</legend>
             <div class="color-grid">
               <button class="color-choice selected" type="button" data-color="azure" aria-label="Azul elétrico" aria-pressed="true" style="--swatch:#38bdf8"></button>
               <button class="color-choice" type="button" data-color="crimson" aria-label="Carmesim" aria-pressed="false" style="--swatch:#fb4f58"></button>
               <button class="color-choice" type="button" data-color="emerald" aria-label="Esmeralda" aria-pressed="false" style="--swatch:#34d399"></button>
-              <button class="color-choice" type="button" data-color="violet" aria-label="Violeta" aria-pressed="false" style="--swatch:#8b5cf6"></button>
+              <button class="color-choice" type="button" data-color="violet" aria-label="Violeta" aria-pressed="false" style="--swatch:#a78bfa"></button>
               <button class="color-choice" type="button" data-color="gold" aria-label="Dourado" aria-pressed="false" style="--swatch:#fbbf24"></button>
-              <button class="color-choice" type="button" data-color="fuchsia" aria-label="Fúcsia" aria-pressed="false" style="--swatch:#e879f9"></button>
+              <button class="color-choice" type="button" data-color="fuchsia" aria-label="Fúcsia" aria-pressed="false" style="--swatch:#f472b6"></button>
               <button class="color-choice" type="button" data-color="cyan" aria-label="Ciano" aria-pressed="false" style="--swatch:#22d3ee"></button>
               <button class="color-choice" type="button" data-color="lime" aria-label="Lima" aria-pressed="false" style="--swatch:#a3e635"></button>
               <button class="color-choice" type="button" data-color="orange" aria-label="Laranja" aria-pressed="false" style="--swatch:#fb923c"></button>
               <button class="color-choice" type="button" data-color="ice" aria-label="Gelo" aria-pressed="false" style="--swatch:#dbeafe"></button>
-              <button class="color-choice" type="button" data-color="coral" aria-label="Coral" aria-pressed="false" style="--swatch:#fda4af"></button>
+              <button class="color-choice" type="button" data-color="coral" aria-label="Coral" aria-pressed="false" style="--swatch:#ff7f73"></button>
               <button class="color-choice" type="button" data-color="silver" aria-label="Prata" aria-pressed="false" style="--swatch:#cbd5e1"></button>
             </div>
           </fieldset>
 
-          <fieldset class="arena-picker">
-            <legend>Escolha a arena</legend>
+          <fieldset class="picker arena-picker">
+            <legend>Campo de batalha</legend>
             <div class="arena-grid">
-              <button class="arena-choice selected" type="button" data-arena="riftfall" aria-pressed="true">
-                <span class="arena-thumb riftfall-thumb"></span><span><strong>RIFTFALL</strong><small>Templo da fenda</small></span>
-              </button>
-              <button class="arena-choice" type="button" data-arena="ember" aria-pressed="false">
-                <span class="arena-thumb ember-thumb"></span><span><strong>FORJA</strong><small>Brasas eternas</small></span>
-              </button>
-              <button class="arena-choice" type="button" data-arena="neon" aria-pressed="false">
-                <span class="arena-thumb neon-thumb"></span><span><strong>NEON</strong><small>Ruínas elétricas</small></span>
-              </button>
-              <button class="arena-choice" type="button" data-arena="astral" aria-pressed="false">
-                <span class="arena-thumb astral-thumb"></span><span><strong>ASTRAL</strong><small>Santuário celeste</small></span>
-              </button>
+              <button class="arena-choice selected" type="button" data-arena="riftfall" aria-pressed="true"><i class="riftfall-thumb"></i><span><strong>RIFTFALL</strong><small>Penhasco ancestral</small></span></button>
+              <button class="arena-choice" type="button" data-arena="ember" aria-pressed="false"><i class="ember-thumb"></i><span><strong>FORJA</strong><small>Brasas eternas</small></span></button>
+              <button class="arena-choice" type="button" data-arena="neon" aria-pressed="false"><i class="neon-thumb"></i><span><strong>RUÍNAS</strong><small>Distrito neon</small></span></button>
+              <button class="arena-choice" type="button" data-arena="astral" aria-pressed="false"><i class="astral-thumb"></i><span><strong>ASTRAL</strong><small>Santuário celeste</small></span></button>
             </div>
           </fieldset>
 
           <p id="lobby-error" class="lobby-error" role="alert"></p>
           <button id="join-button" class="primary-button" type="submit">
-            <span>ENTRAR NA ARENA</span>
-            <span class="button-arrow">→</span>
+            <span>ENTRAR NA ARENA</span><i>→</i>
           </button>
-          <p class="lobby-note">A partida inicia automaticamente quando o segundo jogador entrar na mesma sala.</p>
+          <p class="lobby-note">A primeira pessoa escolhe a arena. O rival usa o mesmo nome de sala e a equipe oposta.</p>
         </form>
       </section>
 
-      <section id="game-shell" class="game-shell hidden" aria-label="Arena de combate">
-        <div id="game-canvas"></div>
-
-        <div id="hud" class="hud-layer">
+      <section id="game-shell" class="game-shell hidden">
+        <div id="game-canvas" aria-label="Arena de luta 3D"></div>
+        <div class="hud-layer">
           <div class="fighter-hud blue-hud">
-            <div class="fighter-meta"><span class="team-tag">AZUL</span><strong id="blue-name">AGUARDANDO</strong></div>
-            <div class="health-track"><div id="blue-health" class="health-fill"></div></div>
-            <div class="fighter-sub"><span id="blue-energy">ENERGIA 0%</span><span id="blue-wins" class="round-pips"></span></div>
+            <div class="fighter-meta"><strong id="blue-name">AGUARDANDO</strong><span>AZUL</span></div>
+            <div class="health-track"><i id="blue-health"></i></div>
+            <div class="fighter-sub"><span id="blue-energy">ESSÊNCIA 0%</span><span id="blue-wins" class="round-pips"><i></i><i></i></span></div>
           </div>
-
-          <div class="round-hud">
-            <small id="round-label">RODADA 1</small>
-            <strong id="round-timer">60</strong>
-          </div>
-
           <div class="fighter-hud red-hud">
-            <div class="fighter-meta"><strong id="red-name">AGUARDANDO</strong><span class="team-tag">VERMELHO</span></div>
-            <div class="health-track"><div id="red-health" class="health-fill"></div></div>
-            <div class="fighter-sub"><span id="red-wins" class="round-pips"></span><span id="red-energy">ENERGIA 0%</span></div>
+            <div class="fighter-meta"><span>VERMELHO</span><strong id="red-name">AGUARDANDO</strong></div>
+            <div class="health-track"><i id="red-health"></i></div>
+            <div class="fighter-sub"><span id="red-wins" class="round-pips"><i></i><i></i></span><span id="red-energy">ESSÊNCIA 0%</span></div>
           </div>
+          <div class="round-hud"><small id="round-label">RODADA 1</small><strong id="round-timer">60</strong></div>
 
           <div id="match-banner" class="match-banner">
-            <span id="banner-kicker">ARENA</span>
+            <span id="banner-kicker">SALA</span>
             <strong id="banner-title">AGUARDANDO RIVAL</strong>
             <button id="share-match" class="share-button" type="button">COPIAR CONVITE</button>
           </div>
-          <div id="combo-indicator" class="combo-indicator" aria-live="polite">
-            <strong id="combo-count">2</strong><span>COMBO</span>
-          </div>
+          <div id="combo-indicator" class="combo-indicator"><strong id="combo-count">2</strong><span>SEQUÊNCIA</span></div>
 
-          <button id="motion-button" class="utility-button motion-button" type="button" aria-label="Reduzir animações e tremores" aria-pressed="false">
-            <span>FX</span>
-          </button>
-          <button id="fullscreen-button" class="utility-button" type="button" aria-label="Tela cheia">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /></svg>
-          </button>
-          <button id="leave-button" class="utility-button leave-button" type="button" aria-label="Sair da partida">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h9" /></svg>
-          </button>
+          <button id="motion-button" class="utility-button motion-button" type="button" aria-label="Reduzir efeitos" aria-pressed="false">FX</button>
+          <button id="leave-button" class="utility-button leave-button" type="button" aria-label="Sair da luta">×</button>
+          <button id="fullscreen-button" class="utility-button fullscreen-button" type="button" aria-label="Tela cheia">⛶</button>
         </div>
 
-        <div id="touch-controls" class="touch-controls">
+        <div class="touch-controls">
           <div class="move-cluster">
-            <button class="control-button move-button" data-action="left" aria-label="Mover para esquerda">
-              <svg viewBox="0 0 48 48"><path d="M30 10 16 24l14 14" /></svg>
-            </button>
-            <button class="control-button move-button" data-action="right" aria-label="Mover para direita">
-              <svg viewBox="0 0 48 48"><path d="m18 10 14 14-14 14" /></svg>
-            </button>
+            <button class="control-button move-button" type="button" data-action="left" aria-label="Mover para esquerda">←</button>
+            <button class="control-button move-button" type="button" data-action="right" aria-label="Mover para direita">→</button>
           </div>
           <div class="action-cluster">
-            <button class="control-button guard-button" data-action="block" aria-label="Defender"><span>DEF</span></button>
-            <button class="control-button jump-button" data-action="jump" aria-label="Pular">
-              <svg viewBox="0 0 48 48"><path d="m12 30 12-12 12 12M24 18v20" /></svg>
-            </button>
-            <button class="control-button dash-button" data-action="dash" aria-label="Executar impulso"><span>DASH</span></button>
-            <button class="control-button attack-button" data-action="attack" aria-label="Atacar com soco"><span>SOCO</span></button>
-            <button class="control-button kick-button" data-action="kick" aria-label="Atacar com chute"><span>CHUTE</span></button>
-            <button id="special-button" class="control-button special-button" data-action="special" aria-label="Golpe especial"><span>RIFT</span><i></i></button>
+            <button class="control-button jump-button" type="button" data-action="jump"><span>PULAR</span></button>
+            <button class="control-button dash-button" type="button" data-action="dash"><span>DASH</span></button>
+            <button class="control-button guard-button" type="button" data-action="block"><span>DEFESA</span></button>
+            <button class="control-button attack-button" type="button" data-action="attack"><span>ATACAR</span></button>
+            <button class="control-button kick-button" type="button" data-action="kick"><span>CHUTE</span></button>
+            <button id="special-button" class="control-button special-button" type="button" data-action="special"><i></i><span>ESPECIAL</span></button>
           </div>
         </div>
 
-        <div id="rotate-device" class="rotate-device">
-          <div class="phone-glyph"></div>
-          <strong>GIRE O CELULAR</strong>
-          <span>A arena foi feita para jogar na horizontal.</span>
-        </div>
-        <div id="connection-state" class="connection-state">RECONECTANDO...</div>
+        <div class="rotate-device"><i></i><strong>GIRE O CELULAR</strong><span>A luta foi criada para o modo horizontal.</span></div>
+        <div id="connection-state" class="connection-state">RECONECTANDO À CRIPTA...</div>
       </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
