@@ -84,7 +84,13 @@ const io = new Server(httpServer, {
 const rooms = new Map<string, RoomState>();
 
 app.get('/health', (_request, response) => {
-  response.json({ ok: true, rooms: rooms.size, players: io.engine.clientsCount });
+  response.json({
+    ok: true,
+    protocol: 2,
+    catalog: 'complete-roster-v4',
+    rooms: rooms.size,
+    players: io.engine.clientsCount,
+  });
 });
 
 const distPath = join(process.cwd(), 'dist');
@@ -517,8 +523,18 @@ io.on('connection', (socket) => {
     const shield = cleanShield(rawPayload?.shield);
     const arena = cleanArena(rawPayload?.arena);
 
+    const invalidFields = [
+      !roomCode && 'sala',
+      !name && 'nome',
+      !skin && 'personagem',
+      !color && 'cor',
+      !weapon && 'arma',
+      !shield && 'escudo',
+      !arena && 'arena',
+      team !== 'blue' && team !== 'red' && 'equipe',
+    ].filter(Boolean);
     if (!roomCode || !name || !skin || !color || !weapon || !shield || !arena || (team !== 'blue' && team !== 'red')) {
-      acknowledge({ ok: false, message: 'Confira seu nome, o nome da sala e as opções de personalização.' });
+      acknowledge({ ok: false, message: `Configuração incompatível: ${invalidFields.join(', ')}.` });
       return;
     }
 

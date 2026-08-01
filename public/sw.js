@@ -1,4 +1,4 @@
-const CACHE = 'riftfall-arsenal-v6-online-server';
+const CACHE = 'riftfall-arsenal-v7-online-any-loadout';
 const ROOT = new URL('./', self.location.href);
 const asset = (path) => new URL(path.replace(/^\//, ''), ROOT).href;
 
