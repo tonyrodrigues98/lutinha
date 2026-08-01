@@ -27,6 +27,7 @@ jobs:
       - run: npm run build
         env:
           VITE_BASE_PATH: /
+          VITE_MULTIPLAYER_URL: https://riftfall-duel.onrender.com
       - uses: actions/configure-pages@v5
         with:
           enablement: true

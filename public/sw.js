@@ -1,4 +1,4 @@
-const CACHE = 'riftfall-arsenal-v5-campaign-reach';
+const CACHE = 'riftfall-arsenal-v6-online-server';
 const ROOT = new URL('./', self.location.href);
 const asset = (path) => new URL(path.replace(/^\//, ''), ROOT).href;
 

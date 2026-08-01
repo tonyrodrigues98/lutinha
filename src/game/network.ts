@@ -20,7 +20,10 @@ export class NetworkClient implements GameClient {
   private connectionListeners = new Set<ConnectionListener>();
 
   constructor() {
-    this.socket = io({
+    const configuredEndpoint = String(import.meta.env.VITE_MULTIPLAYER_URL || '').trim();
+    const endpoint = configuredEndpoint || (import.meta.env.DEV ? undefined : 'https://riftfall-duel.onrender.com');
+
+    this.socket = io(endpoint, {
       autoConnect: false,
       transports: ['websocket', 'polling'],
       reconnection: true,
