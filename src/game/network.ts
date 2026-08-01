@@ -48,34 +48,10 @@ export class NetworkClient implements GameClient {
   join(payload: JoinPayload): Promise<JoinResult> {
     return new Promise((resolve) => {
       const submit = () => {
-        const emitJoin = (joinPayload: JoinPayload, allowCompatibilityRetry: boolean) => {
-          this.socket.timeout(8_000).emit('joinMatch', joinPayload, (error: Error | null, result: JoinResult) => {
-            if (error) {
-              resolve({ ok: false, message: 'O servidor da arena não respondeu. Tente novamente.' });
-              return;
-            }
-
-            const staleCatalogRejection = !result.ok
-              && result.message === 'Confira seu nome, o nome da sala e as opções de personalização.';
-            if (allowCompatibilityRetry && staleCatalogRejection) {
-              // Some sleeping Render instances may briefly run an older asset catalog after a deploy.
-              // Keep the player's identity, room and team, but use the original universally-supported
-              // loadout so a stale server can never block online play.
-              emitJoin({
-                ...joinPayload,
-                skin: 'mage',
-                color: 'azure',
-                weapon: 'Skeleton_Staff',
-                shield: 'none',
-                arena: 'riftfall',
-              }, false);
-              return;
-            }
-            resolve(result);
-          });
-        };
-
-        emitJoin(payload, true);
+        this.socket.timeout(8_000).emit('joinMatch', payload, (error: Error | null, result: JoinResult) => {
+          if (error) resolve({ ok: false, message: 'O servidor da arena não respondeu. Tente novamente.' });
+          else resolve(result);
+        });
       };
       if (this.socket.connected) submit();
       else {

@@ -35,6 +35,7 @@ if (ownedServer) {
 const blue = io(endpoint, { transports: ['websocket'], autoConnect: false });
 const red = io(endpoint, { transports: ['websocket'], autoConnect: false });
 const snapshots = new Map();
+let currentStage = 'inicialização';
 
 function waitFor(socket, event, timeout = 6_000) {
   return new Promise((resolve, reject) => {
@@ -69,7 +70,7 @@ function waitForState(predicate, timeout = 8_000) {
       }
       if (Date.now() - started > timeout) {
         clearInterval(timer);
-        reject(new Error('Timeout esperando estado da partida'));
+        reject(new Error(`Timeout esperando estado da partida: ${currentStage}`));
       }
     }, 30);
   });
@@ -106,9 +107,9 @@ try {
     roomCode,
     name: 'Azul Teste',
     team: 'blue',
-    skin: 'rogue',
+    skin: 'ranger',
     color: 'emerald',
-    weapon: 'dagger_B',
+    weapon: 'bow_A_withString',
     shield: 'none',
     arena: 'ember',
   });
@@ -132,31 +133,58 @@ try {
     roomCode,
     name: 'Vermelho Teste',
     team: 'red',
-    skin: 'warrior',
+    skin: 'mannequinLarge',
     color: 'gold',
-    weapon: 'Skeleton_Axe',
+    weapon: 'Skeleton_Staff',
     shield: 'Skeleton_Shield_Large_A',
     arena: 'astral',
   });
+  currentStage = 'início da luta';
   const fighting = await waitForState((snapshot) => snapshot.status === 'fighting', 8_000);
   if (fighting.roomCode !== roomCode) throw new Error('Caracteres livres do nome da sala não foram preservados');
   if (fighting.arena !== 'ember') throw new Error('A arena do criador da sala não foi preservada');
   if (!fighting.players.some((player) => player.color === 'emerald')) throw new Error('A cor personalizada não foi sincronizada');
-  if (!fighting.players.some((player) => player.weapon === 'dagger_B')) throw new Error('A arma equipada não foi sincronizada');
-  if (!fighting.players.some((player) => player.shield === 'Skeleton_Shield_Large_A')) throw new Error('O escudo equipado não foi sincronizado');
+  const blueLoadout = fighting.players.find((player) => player.team === 'blue');
+  const redLoadout = fighting.players.find((player) => player.team === 'red');
+  if (blueLoadout?.skin !== 'ranger' || blueLoadout.weapon !== 'bow_A_withString' || blueLoadout.shield !== 'none') {
+    throw new Error('O Online substituiu a seleção do jogador azul');
+  }
+  if (redLoadout?.skin !== 'mannequinLarge' || redLoadout.weapon !== 'Skeleton_Staff' || redLoadout.shield !== 'Skeleton_Shield_Large_A') {
+    throw new Error('O Online substituiu personagem, arma ou escudo do jogador vermelho');
+  }
   const blueStartX = fighting.players.find((player) => player.team === 'blue').x;
 
-  input(blue, { right: true, dash: true }, 1);
-  await new Promise((resolve) => setTimeout(resolve, 220));
+  const rangedTargetHealth = redLoadout.health;
+  input(blue, { attack: true }, 1);
+  await new Promise((resolve) => setTimeout(resolve, 420));
   input(blue, {}, 2);
+  currentStage = 'projétil de longa distância';
+  const rangedHit = await waitForState((snapshot) => snapshot.players.find((player) => player.team === 'red')?.health < rangedTargetHealth, 3_000);
+  if (rangedHit.hit?.attackerId !== blue.id) throw new Error('O projétil não foi atribuído ao arqueiro');
+  await new Promise((resolve) => setTimeout(resolve, 450));
+
+  const blueBeforeSpell = rangedHit.players.find((player) => player.team === 'blue').health;
+  input(red, { attack: true }, 1);
+  await new Promise((resolve) => setTimeout(resolve, 540));
+  input(red, {}, 2);
+  currentStage = 'feitiço de longa distância';
+  const spellHit = await waitForState((snapshot) => snapshot.players.find((player) => player.team === 'blue')?.health < blueBeforeSpell, 3_000);
+  if (spellHit.hit?.attackerId !== red.id) throw new Error('O projétil não foi atribuído ao usuário do cajado');
+  await new Promise((resolve) => setTimeout(resolve, 520));
+
+  input(blue, { right: true, dash: true }, 3);
+  await new Promise((resolve) => setTimeout(resolve, 220));
+  input(blue, {}, 4);
+  currentStage = 'dash';
   const dashed = await waitForState((snapshot) => snapshot.players.find((player) => player.team === 'blue')?.x > blueStartX + 80, 2_000);
 
-  input(blue, { right: true }, 3);
-  input(red, { left: true }, 1);
+  input(blue, { right: true }, 5);
+  input(red, { left: true }, 3);
   await new Promise((resolve) => setTimeout(resolve, 750));
-  input(blue, {}, 4);
-  input(red, {}, 2);
+  input(blue, {}, 6);
+  input(red, {}, 4);
 
+  currentStage = 'aproximação';
   const approached = await waitForState((snapshot) => {
     const a = snapshot.players.find((player) => player.team === 'blue');
     const b = snapshot.players.find((player) => player.team === 'red');
@@ -164,27 +192,30 @@ try {
   }, 3_000);
 
   const redBefore = approached.players.find((player) => player.team === 'red').health;
-  input(blue, { attack: true }, 5);
+  input(blue, { attack: true }, 7);
   await new Promise((resolve) => setTimeout(resolve, 180));
-  input(blue, {}, 6);
+  input(blue, {}, 8);
+  currentStage = 'segundo ataque';
   const hit = await waitForState((snapshot) => snapshot.players.find((player) => player.team === 'red')?.health < redBefore, 3_000);
   const redAfter = hit.players.find((player) => player.team === 'red').health;
 
   await new Promise((resolve) => setTimeout(resolve, 620));
-  input(blue, { right: true }, 7);
-  input(red, { left: true }, 3);
+  input(blue, { right: true }, 9);
+  input(red, { left: true }, 5);
+  currentStage = 'reaproximação';
   const reapproached = await waitForState((snapshot) => {
     const a = snapshot.players.find((player) => player.team === 'blue');
     const b = snapshot.players.find((player) => player.team === 'red');
     return a && b && Math.abs(a.x - b.x) < 370;
   }, 3_000);
-  input(blue, {}, 8);
-  input(red, {}, 4);
+  input(blue, {}, 10);
+  input(red, {}, 6);
 
   const kickBefore = reapproached.players.find((player) => player.team === 'red').health;
-  input(blue, { kick: true }, 9);
+  input(blue, { kick: true }, 11);
   await new Promise((resolve) => setTimeout(resolve, 260));
-  input(blue, {}, 10);
+  input(blue, {}, 12);
+  currentStage = 'chute';
   const kickHit = await waitForState((snapshot) => (
     snapshot.hit?.kind === 'kick'
     && snapshot.players.find((player) => player.team === 'red')?.health < kickBefore

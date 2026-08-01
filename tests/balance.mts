@@ -9,8 +9,12 @@ const spear = weaponProfile('spear_A');
 const halberd = weaponProfile('halberd');
 const fist = weaponProfile('fistweapon_A');
 
+assert.equal(magic.delivery, 'projectile', 'Cajado deve lançar projétil, não usar hitbox melee');
+assert.equal(bow.delivery, 'projectile', 'Arco deve lançar projétil, não usar hitbox melee');
+assert.equal(sword.delivery, 'melee');
 assert.ok(magic.range < bow.range, 'Magia não deve superar o arco em alcance');
-assert.ok(magic.range < sword.range * 1.55, 'Magia precisa permanecer alcançável por lutadores corpo a corpo');
+assert.ok(magic.range >= 1_000, 'Feitiço do cajado deve acertar de longe');
+assert.ok(bow.range >= 1_200, 'Flecha deve atravessar a maior parte da arena');
 assert.ok(magic.damage < sword.damage, 'O ataque seguro à distância deve causar menos dano');
 assert.ok(magic.windup > sword.windup * 2, 'A conjuração precisa ser legível e interrompível');
 assert.ok(magic.recovery > bow.recovery, 'O necromante não deve encadear disparos sem janela de resposta');

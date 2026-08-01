@@ -86,7 +86,7 @@ const rooms = new Map<string, RoomState>();
 app.get('/health', (_request, response) => {
   response.json({
     ok: true,
-    protocol: 2,
+    protocol: 3,
     catalog: 'complete-roster-v4',
     rooms: rooms.size,
     players: io.engine.clientsCount,
@@ -325,7 +325,8 @@ function resolveAttack(room: RoomState, attacker: FighterState, now: number): vo
   const verticalDistance = Math.abs(target.y - attacker.y);
   const inFront = (target.x - attacker.x) * attacker.facing > -25;
   const range = special ? Math.max(440, profile.range * 1.15) : kick ? 365 : profile.range;
-  if (distance > range || verticalDistance > (kick ? 165 : 145) || !inFront) return;
+  const verticalTolerance = kick ? 165 : profile.delivery === 'projectile' ? 230 : 145;
+  if (distance > range || verticalDistance > verticalTolerance || !inFront) return;
 
   const targetFacingAttack = (attacker.x - target.x) * target.facing > 0;
   const blocked = target.input.block && target.grounded && targetFacingAttack;

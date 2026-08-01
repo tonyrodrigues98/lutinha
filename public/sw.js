@@ -1,4 +1,4 @@
-const CACHE = 'riftfall-arsenal-v7-online-any-loadout';
+const CACHE = 'riftfall-arsenal-v8-online-loadout-projectiles';
 const ROOT = new URL('./', self.location.href);
 const asset = (path) => new URL(path.replace(/^\//, ''), ROOT).href;
 
